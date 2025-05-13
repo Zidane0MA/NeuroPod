@@ -41,17 +41,23 @@ y tengo estas rutas:
     <Route path="/client/help" element={<ProtectedRoute requiredRole="client"><ClientHelp /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
 ```
+admin: salario infinito.
+usuario: 10 salario.
 Funciones a implementar, conexion entre backend y frontend, conexion con kubernetes, cambios a realizar, crear:
 1. Estado: falta, ruta: /, que la seccion de documentacion abra "https://github.com/Zidane0MA/NeuroPod"
 2. Estado: probar, ruta: /singup, falta probar si se puede registrar.
 3. Estado: probar, ruta: /login, falta probar si se puede logear.
   3.1. Cuando me logeo con lolerodiez@gmail.com tengo acceso como admin.  
 4. Estado: Hecho, ruta: /pricing, sin cambios. -- No quiero extender mas funcionalidad.
-5. Estado: implementar y conectar, ruta: /dashboard, No cambiar UI. -- Ya muestra el contenido dependiendo del usuario.
+5. Estado: implementar y conectar, ruta: /dashboard, No cambiar Diseño -- Ya muestra el contenido dependiendo del usuario.
   5.1. Implementar para admin: Mostrar cantidad de "Pods totales", "Pods activos", Calcular "CPU promedio" del sistema, Mostrar "Usuarios Activos", "Ganancias".
        Mostrar un graficos del "Rendimiento del sistema", Mostrar los "Logs del Sistema".
   5.2. Sin cambios para los clientes.
-7. Estado: Hecho, ruta: /admin/pods, 
+6. Estado: Implementar, ruta: /admin/pods, No cambiar Diseño. -- Solo agregar funcionalidades
+  6.1. Implementar para usuario (admin y cliente): Se debe listar los pods de cada usuario, cada pod tiene un boton de iniciar/detener (Inicia o detiene un pod ya 
+       creado por el usuario en /pods/deploy), eliminar (eliminar un pod creado por el usuario en /pods/deploy), connect y logs.
+    6.1.1 Boton connect: Muestra una ventana (ya hecha), en esta ventana listan los servicios arrancados dentro del pod (ya hecho) junto al boton de abrir, que el 
+          boton de abrir acceda al puerto correspondiente del pod en estado de ejecucion.
 
 
 

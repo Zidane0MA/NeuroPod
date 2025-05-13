@@ -420,7 +420,8 @@ const ContainerSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model('Container', ContainerSchema);
-```## 📋 Información del Proyecto
+```
+## 📋 Información del Proyecto
 
 **Nombre del Proyecto**: Neuropod
 **Dominio**: neuropod.online

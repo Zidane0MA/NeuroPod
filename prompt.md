@@ -42,7 +42,7 @@ y tengo estas rutas en el frontend:
     <Route path="*" element={<NotFound />} />
 ```
 Funciones a implementar, conexion entre backend y frontend, conexion con kubernetes, cambios a realizar, crear y contextos:
-•	Saldo Contexto:  El admin, en las rutas /admin/pods, /admin/pods/deploy se tiene saldo infinito (decorativo) puede crear pods sin coste alguno, ademas en la barra lateral de las paginas que le corresponden tambien se muestra ese saldo. El cliente, en las rutas /client/pods y /client/pods/deploy se muestra un saldo inicial de 10 euros, que se va restando de acuerdo al uso por horas de los pods, ademas en la barra lateral de las paginas que le corresponden tambien muestran el saldo del usuario. En principio no planeo implementar un sistema de pago, por lo que el admin podra asignar saldo a los usuarios.
+•	Contexto de saldo:  El admin, en las rutas /admin/pods, /admin/pods/deploy se tiene saldo infinito (decorativo) puede crear pods sin coste alguno, ademas en la barra lateral de las paginas que le corresponden tambien se muestra ese saldo. El cliente, en las rutas /client/pods y /client/pods/deploy se muestra un saldo inicial de 10 euros, que se va restando de acuerdo al uso por horas de los pods, ademas en la barra lateral de las paginas que le corresponden tambien muestran el saldo del usuario. En principio no planeo implementar un sistema de pago, por lo que el admin podra asignar saldo a los usuarios.
 •	Estado: falta, ruta: /, que la seccion de documentacion abra "https://github.com/Zidane0MA/NeuroPod"
 •	Estado: falta, conexion, ruta: /singup, falta probar si se puede registrar desde el frontend.
 •	Estado: falta, conexion, ruta: /login, falta probar si se puede logear desde el frontend.

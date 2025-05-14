@@ -4,13 +4,24 @@
 
 #### Preparar el sistema Windows
 ```powershell
-# Instalar Node.js desde el instalador oficial
+# Opcion 1: Instalar fnm (Gestor de versiones de node.js)
+# Ejecutar PowerShell como administrador: 
+Set-ExecutionPolicy RemoteSigned
+$PROFILE
+# Crear archivo Microsoft.PowerShell_profile.ps1 en ruta $PROFILE
+fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression 
+# Instalación fnm (Powershell)
+winget install Schniz.fnm
+fnm install 22   
+fnm use 22
+
+# Opcion 2: Instalar Node.js desde el instalador oficial
 # Descarga desde https://nodejs.org/en/download/
 
 # Instalar MongoDB Community Edition para Windows
 # Descarga desde https://www.mongodb.com/try/download/community
 
-# Verificar instalaciones (en PowerShell o CMD)
+# Verificar instalaciones (en PowerShell)
 node --version
 npm --version
 # MongoDB debe estar disponible en C:\Program Files\MongoDB\Server\[versión]\bin\mongod.exe
@@ -18,23 +29,12 @@ npm --version
 
 #### Instalar Minikube y Kubectl en Windows
 ```powershell
-# Instalar Chocolatey (gestor de paquetes para Windows)
-# Ejecutar PowerShell como administrador
-Set-ExecutionPolicy Bypass -Scope Process -Force
-[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-
-# Instalar kubectl usando Chocolatey
-choco install kubernetes-cli
-
-# Instalar Minikube usando Chocolatey
-choco install minikube
+# Descargar desde https://minikube.sigs.k8s.io/docs/start/
+kubectl version –client
 
 # Iniciar Minikube (con Docker Desktop o VirtualBox)
 # Si usas Docker Desktop:
 minikube start --driver=docker
-# Si usas VirtualBox:
-# minikube start --driver=virtualbox
 
 # Habilitar Ingress en Minikube
 minikube addons enable ingress
@@ -137,7 +137,9 @@ npm run dev  # Debe ejecutarse en puerto 5173
 - **Problemas de permisos**: Ejecuta los comandos en PowerShell o CMD como administrador
 - **Puertos bloqueados**: Verifica que el firewall de Windows no está bloqueando los puertos necesarios (3000, 5173, 443)
 - **Cloudflared no se inicia**: Asegúrate de que el archivo de configuración tiene las rutas correctas y formato adecuado
-- **NGINX Ingress no funciona**: Verifica que el addon está habilitado con `minikube addons list`## 📝 Ejemplo de Código para Creación Dinámica de Recursos (Windows)
+- **NGINX Ingress no funciona**: Verifica que el addon está habilitado con `minikube addons list`
+
+## 📝 Ejemplo de Código para Creación Dinámica de Recursos (Windows)
 
 ### Ejemplo de creación de Pod, Service e Ingress desde Node.js:
 
@@ -333,9 +335,9 @@ async function createWorkspacePVCIfNeeded(userId) {
 // Función para calcular el costo por hora según el tipo de contenedor
 function calculateCostPerHour(containerType) {
   const costsPerHour = {
-    'comfy': 0.5,  // 0.5€ por hora
-    'ubuntu': 0.3, // 0.3€ por hora
-    'custom': 0.7  // 0.7€ por hora
+    'comfy': 0.5,  // 0.5€ por hora    // Precios modificables por admin desde la aplicacion
+    'ubuntu': 0.3, // 0.3€ por hora    // Precios modificables por admin desde la aplicacion
+    'custom': 0.7  // 0.7€ por hora    // Precios modificables por admin desde la aplicacion
   };
   
   return costsPerHour[containerType] || 0.5; // Valor por defecto
@@ -428,9 +430,11 @@ module.exports = mongoose.model('Container', ContainerSchema);
 **Objetivo**: Plataforma para gestionar y ejecutar contenedores Docker a través de una interfaz web con autenticación de usuarios. ComfyUI está disponible como una plantilla predefinida, al igual que Ubuntu, pero cualquier imagen Docker podrá ejecutarse manualmente.   
 **Tecnologías principales**: MongoDB, Node.js, React, Kubernetes, Docker, NGINX Ingress, Cloudflare Tunnel  
 **Base de datos**: `plataforma` (gestionada con mongosh)  
-**Modelo de negocio**: Los usuarios tienen un saldo inicial de 10€, que gastan al ejecutar contenedores. El administrador tiene saldo infinito y puede configurar precios.  
+**Modelo de negocio**: Los usuarios tienen un saldo inicial de 10€, que gastan al ejecutar contenedores. El administrador tiene saldo infinito y puede configurar precios asi como asignar saldo a los usuarios, no esta implementado un sistema de pago.  
 
-Neuropod es una plataforma que permitirá a los usuarios iniciar sesión, gestionar y ejecutar múltiples contenedores Docker a través de una interfaz web intuitiva. Cada contenedor será accesible mediante su propio subdominio dinámico (ej. `comfy-usuario123-4567.neuropod.online`). El sistema gestionará la autenticación, sesiones, y desplegará los contenedores necesarios en Kubernetes de forma dinámica según las peticiones de los usuarios. Los contenedores tendrán un directorio `/workspace` que persistirá entre sesiones para almacenar datos del usuario.# 🚀 Plan de Pasos Personalizado para Proyecto Neuropod
+Neuropod es una plataforma que permitirá a los usuarios iniciar sesión, gestionar y ejecutar múltiples contenedores Docker a través de una interfaz web intuitiva. Cada contenedor será accesible mediante su propio subdominio dinámico (ej. `comfy-usuario123-4567.neuropod.online`). El sistema gestionará la autenticación, sesiones, y desplegará los contenedores necesarios en Kubernetes de forma dinámica según las peticiones de los usuarios. Los contenedores tendrán un directorio `/workspace` que persistirá entre sesiones para almacenar datos del usuario.
+
+# 🚀 Plan de Pasos Personalizado para Proyecto Neuropod
 
 ## 🛠️ Fase 1 — Prepara la base
 
@@ -503,7 +507,7 @@ Neuropod es una plataforma que permitirá a los usuarios iniciar sesión, gestio
    * Gestión de JWT: almacenar en localStorage o cookies seguras.
    * Diseña dos interfaces diferenciadas:
      * **Panel de administrador** (`/dashboard`, `/admin/pods`, `/admin/pods/deploy`, `/admin/users`, `/admin/settings`, `/admin/help`)
-     * **Panel de cliente** (`/dashboard`, `/client/stats`, `/client/pods`, `/client/pods/deploy`, `/client/settings`, `/client/help`)
+     * **Panel de cliente** (`/client/stats`, `/client/pods`, `/client/pods/deploy`, `/client/settings`, `/client/help`)
 
 2. **Panel de administrador**:
    * Dashboard principal con resumen de usuarios, contenedores activos y estadísticas.
@@ -600,16 +604,15 @@ Neuropod es una plataforma que permitirá a los usuarios iniciar sesión, gestio
    * Implementa rate limiting en NGINX Ingress para evitar abusos.
 
 3. **Optimización y ajustes finales**:
-   * Frontend y Backend no se contenerizarán, solo los pods de usuario.
+   * Frontend, Backend y base de datos no se contenerizarán, solo los pods de usuario.
    * Optimiza el tiempo de inicio de los contenedores.
    * Configura un sistema de registro detallado para actividades de usuario.
    * Implementa un sistema de alertas para eventos críticos.
-   * Diseña un proceso para backups regulares de la base de datos.
 
 4. **Automatización y monitoreo**:
    * Implementa scripts para reiniciar servicios si es necesario.
    * Configura monitoreo básico del estado de los pods y servicios.
-   * Crea una tarea programada para verificar saldos y detener contenedores inactivos.
+   * Crea una tarea programada para verificar saldos y detener contenedores despues de un tiempo de inactividad.
    * Implementa logs centralizados para depuración y auditoría.
 
 5. **Documentación del Proyecto Neuropod**:
@@ -635,9 +638,9 @@ app.neuropod.online  api.neuropod.online  *.neuropod.online
 (Frontend)           (Backend API)       (Pods de Usuario)
      |                 |                         |
      v                 v                         v
-+--------------------------+ Cloudflare Tunnel +--------------------------+
-|    localhost:5173        |      localhost:3000       |     localhost:443        |
-+------------+-------------+-------------+-------------+-------------+-------------+
++--------------------------+ Cloudflare Tunnel +---------------------------------+
+|    localhost:5173        |      localhost:3000       |     localhost:443       |
++------------+-------------+-------------+-------------+-------------+-----------+
              |                           |                           |
              v                           v                           v
      +---------------+          +------------------+         +-------------------+
@@ -655,15 +658,15 @@ app.neuropod.online  api.neuropod.online  *.neuropod.online
              |                           |                   +-------------------+
              |                  WebSocket Events             | Pods de Usuario   |
              +--------------------------------+              | - ComfyUI         |
-                                             |              | - Ubuntu          |
-                                             |              | - Imágenes custom |
-                                             |              +-------------------+
+                                             |               | - Ubuntu          |
+                                             |               | - Imágenes custom |
+                                             |               +-------------------+
                                              |                        |
                                              |                        v
-                                             |              +-------------------+
-                                             +------------->| Persistent Volume |
-                                                            | (/workspace)      |
-                                                            +-------------------+
+                                             |               +-------------------+
+                                             +-------------->| Persistent Volume |
+                                                             | (/workspace)      |
+                                                             +-------------------+
 ```
 
 ## 🧠 Consejos para el proyecto Neuropod:

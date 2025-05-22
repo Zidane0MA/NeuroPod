@@ -9,19 +9,19 @@ La arquitectura de red está diseñada de la siguiente manera:
 ```
                                 🌐 Internet
                                       |
-                        +-------------+---------------------+
-                        |                                   |
-         DNS Wildcard (*.neuropod.online)                   |
-                        |                                   |
-            +------------------------+                      |
-            |                        |                      |
-            v                        v                      v
-    app.neuropod.onlin      api.neuropod.online     *.neuropod.online
-        (Frontend)             (Backend API)        (Pods de Usuario)
-            |                        |                      |
-            v                        v                      v
-+-----------------------+-- Cloudflare Tunnel --+-----------------------+
-|    localhost:5173     |    localhost:3000     |     localhost:443     |
+                        +-------------+------------------------+
+                        |                                      |
+         DNS Wildcard (*.neuropod.online)                      |
+                        |                                      |
+            +-------------------------+                        |
+            |                         |                        |
+            v                         v                        v
+    app.neuropod.onlin        api.neuropod.online       *.neuropod.online
+        (Frontend)               (Backend API)          (Pods de Usuario)
+            |                         |                        |
+            v                         v                        v
++-----------------------+--- Cloudflare Tunnel ---+-------------------------+
+|    localhost:5173     |     localhost:3000      |      localhost:443      |
 ```
 
 ### Configuración NGINX Ingress Controller
@@ -243,7 +243,7 @@ async function createOrVerifyUserPVC(userId, volumeDiskSize) {
           name: pvcName
         },
         spec: {
-          accessModes: ['ReadWriteOnce'],
+          accessModes: ['ReadWriteMany'],
           resources: {
             requests: {
               storage: `${volumeDiskSize}Gi`

@@ -1,6 +1,6 @@
 ## 📘 Guía de Despliegue Paso a Paso (Windows)
 
-### 1. Configuración inicial del entorno
+### 1. Configuración inicial del entorno (HECHO)
 
 #### Preparar el sistema Windows
 ```powershell
@@ -34,7 +34,7 @@ kubectl version –client
 
 # Iniciar Minikube (con Docker Desktop o VirtualBox)
 # Si usas Docker Desktop:
-minikube start --driver=docker
+minikube start --driver=docker 
 
 # Habilitar Ingress en Minikube
 minikube addons enable ingress
@@ -58,22 +58,37 @@ mkdir -p $env:USERPROFILE\.cloudflared
 
 Crear archivo `%USERPROFILE%\.cloudflared\config.yml`:
 ```yaml
-tunnel: neuropod-tunnel
-credentials-file: C:\Users\<tu-usuario>\.cloudflared\neuropod-tunnel.json
+   # ~/.cloudflared/config.yml (Windows: %USERPROFILE%\.cloudflared\config.yml)
+    tunnel: neuropod-tunnel
+    credentials-file: C:\Users\<tu-usuario>\.cloudflared\neuropod-tunnel.json
 
-ingress:
-  - hostname: app.neuropod.online
-    service: http://localhost:5173
-  - hostname: api.neuropod.online
-    service: http://localhost:3000
-  - hostname: "*.neuropod.online"
-    service: https://localhost:443
-    originRequest:
-      noTLSVerify: true
-  - service: http_status:404
+    ingress:
+      # Frontend React
+      - hostname: app.neuropod.online
+        service: http://localhost:5173
+      
+      # Backend API
+      - hostname: api.neuropod.online
+        service: http://localhost:3000
+      
+      # Wildcard para los pods de usuario - CONFIGURACIÓN MEJORADA
+      - hostname: "*.neuropod.online"
+        service: http://localhost:443
+        originRequest:
+          noTLSVerify: true
+          # Configuración importante para WebSockets (Jupyter Lab)
+          connectTimeout: 30s
+          tlsTimeout: 30s
+          tcpKeepAlive: 30s
+          disableChunkedEncoding: true # Ayuda con ciertos problemas WebSocket
+          # Configuración para tokens de acceso y Jupyter Lab
+          http2Origin: false
+
+      # Fallback
+      - service: http_status:404
 ```
 
-### 2. Configuración de DNS en Cloudflare
+### 2. Configuración de DNS en Cloudflare (HECHO)
 
 1. Accede al dashboard de Cloudflare
 2. Selecciona tu dominio `neuropod.online`
@@ -83,7 +98,7 @@ ingress:
    - Tipo: CNAME, Nombre: api, Destino: (tunnel-id).cfargotunnel.com
    - Tipo: CNAME, Nombre: *, Destino: (tunnel-id).cfargotunnel.com
 
-### 3. Iniciar servicios en Windows
+### 3. Iniciar servicios en Windows (HECHO)
 
 ```powershell
 # Iniciar Minikube si no está en ejecución
@@ -139,38 +154,6 @@ npm run dev  # Debe ejecutarse en puerto 5173
 - **Cloudflared no se inicia**: Asegúrate de que el archivo de configuración tiene las rutas correctas y formato adecuado
 - **NGINX Ingress no funciona**: Verifica que el addon está habilitado con `minikube addons list`
 
-## 📝 Ejemplo de Código para Creación Dinámica de Recursos (Windows)
-
-### Ejemplo de creación de Pod, Service e Ingress desde Node.js:
-
-```javascript
-
-```
-
-### Configuración de Cloudflared para Windows:
-
-```yaml
-# C:\Users\<tu-usuario>\.cloudflared\config.yml
-tunnel: neuropod-tunnel
-credentials-file: C:\Users\<tu-usuario>\.cloudflared\neuropod-tunnel.json
-
-ingress:
-  - hostname: app.neuropod.online
-    service: http://localhost:5173
-  - hostname: api.neuropod.online
-    service: http://localhost:3000
-  - hostname: "*.neuropod.online"
-    service: https://localhost:443
-    originRequest:
-      noTLSVerify: true
-  - service: http_status:404
-```
-
-### Ejemplo de modelo Mongoose para pods:
-
-```javascript
-
-```
 ## 📋 Información del Proyecto
 
 **Nombre del Proyecto**: Neuropod  

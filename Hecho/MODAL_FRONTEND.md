@@ -104,14 +104,17 @@
 ## 💻 **Implementación Frontend React**
 
 ```jsx
+// src/components/modals/ConnectionModal.jsx
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Wifi, WifiOff, Loader2 } from 'lucide-react';
+import axios from 'axios';
 
 const ConnectionModal = ({ podId, isOpen, onClose }) => {
   const [connections, setConnections] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (isOpen && podId) {
@@ -121,12 +124,14 @@ const ConnectionModal = ({ podId, isOpen, onClose }) => {
 
   const fetchConnections = async () => {
     setLoading(true);
+    setError(null);
+    
     try {
-      const response = await fetch(`/api/pods/${podId}/connections`);
-      const data = await response.json();
-      setConnections(data.data);
+      const response = await axios.get(`/api/pods/${podId}/connections`);
+      setConnections(response.data.data);
     } catch (error) {
       console.error('Error fetching connections:', error);
+      setError('No se pudieron cargar las conexiones. Inténtalo de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -143,6 +148,7 @@ const ConnectionModal = ({ podId, isOpen, onClose }) => {
       case 'ready': return '🟢';
       case 'starting': return '🟡';
       case 'error': return '🔴';
+      case 'stopped': return '🔴';
       default: return '⚪';
     }
   };
@@ -177,6 +183,32 @@ const ConnectionModal = ({ podId, isOpen, onClose }) => {
       </Button>
     </div>
   );
+  
+  // Si hay error
+  if (error) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wifi className="w-5 h-5" />
+              Error de conexión
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="text-center py-6">
+            <p className="text-red-500">{error}</p>
+            <Button 
+              onClick={fetchConnections} 
+              className="mt-4"
+            >
+              Reintentar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -203,7 +235,7 @@ const ConnectionModal = ({ podId, isOpen, onClose }) => {
                 </p>
               </div>
             </div>
-          ) : connections?.status === 'starting' ? (
+          ) : connections?.status === 'starting' || connections?.status === 'creating' ? (
             <div className="space-y-4">
               <div className="text-center py-4">
                 <Loader2 className="w-8 h-8 mx-auto animate-spin text-yellow-500" />
@@ -219,7 +251,7 @@ const ConnectionModal = ({ podId, isOpen, onClose }) => {
                 </h4>
                 <div className="space-y-2">
                   {connections?.httpServices?.map((service, index) =>
-                    renderServiceCard(service, index, false)
+                    renderServiceCard({...service, status: 'starting'}, index, false)
                   )}
                 </div>
               </div>

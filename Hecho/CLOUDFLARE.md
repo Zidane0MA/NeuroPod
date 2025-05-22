@@ -25,27 +25,34 @@
 2. **Configuración de Cloudflare Tunnel para Windows**:
 
    ```yaml
-   # C:\Users\<tu-usuario>\.cloudflared\config.yml
-   tunnel: neuropod-tunnel
-   credentials-file: C:\Users\<tu-usuario>\.cloudflared\neuropod-tunnel.json
-   
-   ingress:
-     # Frontend (React)
-     - hostname: app.neuropod.online
-       service: http://localhost:5173  # o el puerto de producción si usas un servidor web
-     
-     # Backend (Node.js)
-     - hostname: api.neuropod.online
-       service: http://localhost:3000
-     
-     # Pods de usuario (wildcard)
-     - hostname: "*.neuropod.online"
-       service: https://localhost:443  # Apunta a NGINX Ingress
-       originRequest:
-         noTLSVerify: true  # Para evitar problemas con certificados autofirmados
-     
-     # Captura todo lo demás y devuelve 404
-     - service: http_status:404
+    # ~/.cloudflared/config.yml (Windows: %USERPROFILE%\.cloudflared\config.yml)
+    tunnel: neuropod-tunnel
+    credentials-file: C:\Users\<tu-usuario>\.cloudflared\neuropod-tunnel.json
+
+    ingress:
+      # Frontend React
+      - hostname: app.neuropod.online
+        service: http://localhost:5173
+      
+      # Backend API
+      - hostname: api.neuropod.online
+        service: http://localhost:3000
+      
+      # Wildcard para los pods de usuario - CONFIGURACIÓN MEJORADA
+      - hostname: "*.neuropod.online"
+        service: http://localhost:443
+        originRequest:
+          noTLSVerify: true
+          # Configuración importante para WebSockets (Jupyter Lab)
+          connectTimeout: 30s
+          tlsTimeout: 30s
+          tcpKeepAlive: 30s
+          disableChunkedEncoding: true # Ayuda con ciertos problemas WebSocket
+          # Configuración para tokens de acceso y Jupyter Lab
+          http2Origin: false
+
+      # Fallback
+      - service: http_status:404
    ```
 
 3. **Instalación y Configuración de Cloudflared en Windows**:
@@ -92,36 +99,54 @@
    kubectl create secret tls neuropod-tls --key tls.key --cert tls.crt
    ```
 
-2. **Configuración avanzada de NGINX Ingress en Windows**:
+2. **Configuración NGINX Ingress Controller**
 
-   Crea un archivo llamado `ingress-values.yaml`:
+    Las configuraciones de NGINX son cruciales para el funcionamiento correcto del sistema:
 
-   ```yaml
-   # ingress-values.yaml
-   controller:
-     config:
-       proxy-buffer-size: "16k"
-       use-forwarded-headers: "true"
-       proxy-connect-timeout: "300"
-       proxy-read-timeout: "300"
-       client-max-body-size: "50m"
-       # Importante para pods de larga duración
-       keep-alive: "75"
-       keep-alive-requests: "100"
-     publishService:
-       enabled: true
-     ingressClassResource:
-       default: true
-     service:
-       externalTrafficPolicy: Local
-   ```
+    ```yaml
+    # ConfigMap para NGINX
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: nginx-configuration
+      namespace: ingress-nginx
+    data:
+      server-name-hash-bucket-size: "256"  # Permite manejar nombres de servidor (subdominios) largos
+      proxy-buffer-size: "16k"             # Mejora el manejo de cabeceras HTTP grandes
+      use-forwarded-headers: "true"        # Importante para trabajar con Cloudflare Tunnel
+    ```
 
-   Luego aplica la configuración:
+    Luego aplica la configuración:
 
-   ```powershell
-   # Aplicar la configuración
-   kubectl apply -f ingress-values.yaml
-   ```
+    ```powershell
+    # Aplicar la configuración
+    kubectl apply -f ConfigMap.yaml
+    ```
+
+    **Explicación:**
+    - ``server-name-hash-bucket-size``: Permite manejar subdominios largos como los que generarás (ej: mi-pod-test-u1a2b3c4-8888.neuropod.online)
+    - ``proxy-buffer-size``: Necesario para cabeceras HTTP más grandes, que son comunes cuando se trabaja con tokens de autenticación
+    - ``use-forwarded-headers``: Asegura que las peticiones mantengan su origen cuando pasan por Cloudflare Tunnel
+
+3. Kubernetes ConfigMap para Neuropod
+
+    ```yaml
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: neuropod-config
+    data:
+      domain: "neuropod.online"            # Dominio base para todos los subdominios
+      defaultStorageClass: "standard"      # Tipo de almacenamiento a usar por defecto
+      maxPodsPerUser: "5"                  # Límite de pods por usuario
+    ```
+
+    Luego aplica la configuración:
+
+    ```powershell
+    # Aplicar la configuración
+    kubectl apply -f ConfigMap.yaml
+    ```
 
 3. **Clase de Ingress dedicada**:
 

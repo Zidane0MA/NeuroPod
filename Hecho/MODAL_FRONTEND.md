@@ -103,8 +103,11 @@
 
 ## 💻 **Implementación Frontend React**
 
+> **Nota**: El ejemplo actual esta en formato jxs, adaptarlo a tsx que es como esta hecho el frontend.
+
 ```jsx
-// src/components/modals/ConnectionModal.jsx
+// src/components/client/pods/PodConnectDialog.tsx
+// src/components/admin/pods/PodConnectDialog.tsx
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';

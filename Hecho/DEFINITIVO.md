@@ -141,6 +141,16 @@ spec:
               number: ${port}  # Usa el puerto original, no 80!
 ```
 
+### Configuración de tolerancias para pods con GPU
+
+```yaml
+# Modifica el como se crean los pods para incluir
+tolerations:
+- key: nvidia.com/gpu
+  operator: Exists
+  effect: NoSchedule
+```
+
 ### Función JavaScript Mejorada para Crear Resources
 
 ```javascript
@@ -1264,8 +1274,11 @@ exports.getPodLogs = async (req, res) => {
 ### Implementación del Modal de Conexión
 Vamos a implementar el modal de conexión basado en la especificación de MODAL_FRONTEND.md:
 
+> **Nota**: El ejemplo actual esta en formato jxs, adaptarlo a tsx que es como esta hecho el frontend.
+
 ```jsx
-// src/components/modals/ConnectionModal.jsx
+// src/components/client/pods/PodConnectDialog.tsx
+// src/components/admin/pods/PodConnectDialog.tsx
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -1465,10 +1478,13 @@ export default ConnectionModal;
 
 ### Implementación de las tablas de Pods
 
-Para las páginas de Pods (AdminPods.jsx y ClientPods.jsx), implementemos el componente de tabla con acciones:
+Para las páginas de Pods (admin/Pods.tsx y client/Pods.tsx), implementemos el componente de tabla con acciones:
+
+> **Nota**: El ejemplo actual esta en formato jxs, adaptarlo a tsx que es como esta hecho el frontend.
 
 ```jsx
-// src/components/pods/PodsTable.jsx
+// src/components/admin/pods/*.tsx        # te lo dejo a juicio propio
+// src/components/client/pods/*.tsx       # te lo dejo a juicio propio
 import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -1673,8 +1689,11 @@ export default PodsTable;
 
 ### Modal de Logs para visualizar los logs del pod
 
+> **Nota**: El ejemplo actual esta en formato jxs, adaptarlo a tsx que es como esta hecho el frontend.
+
 ```jsx
-// src/components/modals/LogsModal.jsx
+// src/components/admin/pods/PodConnectDialog.tsx
+// src/components/client/pods/PodConnectDialog.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -1793,10 +1812,12 @@ export default LogsModal;
 
 ### Implementación de las páginas de Pods
 
-#### AdminPods.jsx
+#### AdminPods.tsx
+
+> **Nota**: El ejemplo actual esta en formato jxs, adaptarlo a tsx que es como esta hecho el frontend.
 
 ```jsx
-// src/pages/admin/Pods.jsx
+// src/pages/admin/Pods.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -1948,9 +1969,12 @@ const AdminPods = () => {
 export default AdminPods;
 ```
 
-#### ClientPods.jsx
+#### ClientPods.tsx
+
+> **Nota**: El ejemplo actual esta en formato jxs, adaptarlo a tsx que es como esta hecho el frontend.
+
 ```jsx
-// src/pages/client/Pods.jsx
+// src/pages/client/Pods.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -2350,8 +2374,10 @@ module.exports = {
 
 ### Integración de WebSockets en el Frontend
 
+> **Nota**: El ejemplo actual esta en formato jxs, adaptarlo a tsx que es como esta hecho el frontend.
+
 ```jsx
-// src/lib/websocket.js
+// crear src/lib/websocket.js
 class PodSocket {
   constructor() {
     this.socket = null;
@@ -2487,8 +2513,11 @@ export default new PodSocket();
 
 ### Uso de WebSockets en componentes
 
+> **Nota**: El ejemplo actual esta en formato jxs, adaptarlo a tsx que es como esta hecho el frontend.
+
 ```jsx
-// En PodsTable.jsx
+// en src/components/admin/pods/*.tsx        # te lo dejo a juicio propio
+// en src/components/client/pods/*.tsx       # te lo dejo a juicio propio
 import podSocket from '@/lib/websocket';
 
 // Dentro del componente
@@ -2576,20 +2605,20 @@ Para resolver los problemas de token en Jupyter Lab y otros servicios:
 
 1. HTTPS: Todo el tráfico debe estar protegido por HTTPS (Cloudflare lo proporciona)
 
-  **Certificados TLS dentro del clúster**:
-  Aunque Cloudflare maneja HTTPS externamente, es recomendable tener TLS dentro del clúster:
-  ```powershell
-  # Instalar OpenSSL si no lo tienes (puedes usar Chocolatey)
-  # choco install openssl
+    **Certificados TLS dentro del clúster**:
+    Aunque Cloudflare maneja HTTPS externamente, es recomendable tener TLS dentro del clúster:
+    ```powershell
+    # Instalar OpenSSL si no lo tienes (puedes usar Chocolatey)
+    # choco install openssl
 
-  # Crear un certificado autofirmado para comunicación interna
-  # Ejecutar en PowerShell:
-  openssl req -x509 -nodes -days 365 -newkey rsa:2048 `
+    # Crear un certificado autofirmado para comunicación interna
+    # Ejecutar en PowerShell:
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 `
     -keyout tls.key -out tls.crt -subj "/CN=*.neuropod.local"
    
-  # Crear un secret de Kubernetes con el certificado
-  kubectl create secret tls neuropod-tls --key tls.key --cert tls.crt
-  ```
+    # Crear un secret de Kubernetes con el certificado
+    kubectl create secret tls neuropod-tls --key tls.key --cert tls.crt
+    ```
 
 2. Aislamiento de pods: Usa NetworkPolicies para aislar los pods entre sí
 3. Restricción de recursos: Limita la CPU, memoria y GPU que puede usar cada pod

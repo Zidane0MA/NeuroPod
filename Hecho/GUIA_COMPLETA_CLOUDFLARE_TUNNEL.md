@@ -1,5 +1,7 @@
 # Guía Detallada: Configuración de Cloudflare y Cloudflare Tunnel para Neuropod
 
+> **Nota**: Actualmente aplicado.
+
 Esta guía te ayudará a configurar Cloudflare para tu dominio existente en Hostinger y a establecer un Cloudflare Tunnel para exponer tus servicios locales (frontend, backend y pods de Kubernetes) a Internet de forma segura.
 
 ## 1. Transferir la Gestión DNS a Cloudflare
@@ -113,31 +115,37 @@ Esta guía te ayudará a configurar Cloudflare para tu dominio existente en Host
    ```
 
 3. Agrega la siguiente configuración (reemplaza los valores según sea necesario):
-   ```yaml
-   # Configuración del túnel
-   tunnel: neuropod-tunnel
-   credentials-file: C:\Users\<tu-usuario>\.cloudflared\<UUID>.json
-   
-   # Reglas de enrutamiento (ingress)
-   ingress:
-     # Frontend (React)
-     - hostname: app.neuropod.online
-       service: http://localhost:5173
-     
-     # Backend (Node.js)
-     - hostname: api.neuropod.online
-       service: http://localhost:3000
-     
-     # Pods de usuario (wildcard)
-     - hostname: "*.neuropod.online"
-       service: https://localhost:443
-       originRequest:
-         noTLSVerify: true
-     
-     # Ruta por defecto (404)
-     - service: http_status:404
-   ```
+      ```yaml
+      # ~/.cloudflared/config.yml (Windows: %USERPROFILE%\.cloudflared\config.yml)
+      tunnel: neuropod-tunnel
+      credentials-file: C:\Users\<tu-usuario>\.cloudflared\neuropod-tunnel.json
 
+      ingress:
+      # Frontend React
+      - hostname: app.neuropod.online
+         service: http://localhost:5173
+      
+      # Backend API
+      - hostname: api.neuropod.online
+         service: http://localhost:3000
+      
+      # Wildcard para los pods de usuario - CONFIGURACIÓN MEJORADA
+      - hostname: "*.neuropod.online"
+         service: http://localhost:443
+         originRequest:
+            noTLSVerify: true
+            # Configuración importante para WebSockets (Jupyter Lab)
+            connectTimeout: 30s
+            tlsTimeout: 30s
+            tcpKeepAlive: 30s
+            disableChunkedEncoding: true # Ayuda con ciertos problemas WebSocket
+            # Configuración para tokens de acceso y Jupyter Lab
+            http2Origin: false
+
+      # Fallback
+      - service: http_status:404
+      ```
+      
    > **Nota**: Los puertos especificados (5173, 3000, 443) deben coincidir con los puertos donde se ejecutan tus servicios localmente.
 
 ### 3.5. Ejecutar el Túnel Manualmente (Prueba)

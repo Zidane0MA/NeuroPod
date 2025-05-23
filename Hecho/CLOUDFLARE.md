@@ -1,5 +1,7 @@
 ## 🚀 Configuración para Entorno de Producción en Windows
 
+> **Nota**: Actualmente aplicado.
+
 ### Configuración de Dominios y DNS
 
 1. **Configuración en Cloudflare**:

@@ -129,8 +129,8 @@ flowchart LR
 
 ## 🛠️ Instalación local
 
-> **Nota**: Ver archivo [`Guia Cloudflare`] (./Documentacion/GUIA_COMPLETA_CLOUDFLARE_TUNNEL_HECHO.md) y 
-[`Guia Minikube`] (./Documentacion/GUIA_MINIKUBE_CONFIGURACION_HECHO.md).
+> **Nota**: Ver archivo [`Guia Minikube`](./Documentacion/GUIA_COMPLETA_CLOUDFLARE_TUNNEL_HECHO.md) y 
+[`Guia Minikube`](./Documentacion/GUIA_MINIKUBE_CONFIGURACION_HECHO.md).
 
 1. Instalar node.js
    ```powershell
@@ -156,10 +156,10 @@ flowchart LR
 
 2. Completar las configuraciones de las guias.
 
-3. Configurar Google Cloud Console
+3. Configurar [Google Cloud Console](https://console.cloud.google.com)
    ```md
    ### 1. Acceder a Google Cloud Console
-   En [Google Cloud Console](https://console.cloud.google.com) crear un proyecto, en la sección **APIs y servicios > Credenciales**.
+   Crear un proyecto en Google Cloud Console, en la sección **APIs y servicios > Credenciales**.
  
    ### 2. Crear una credencial OAuth
    Seleccionar **Crear credencial** y elegir **ID de cliente OAuth**.
@@ -211,7 +211,6 @@ README.md
 
 Este proyecto está licenciado bajo la **Apache License 2.0**.  
 Ver archivo [`LICENSE`](./LICENSE) para más detalles.
-
 ---
 
 ## ✉️ Autor

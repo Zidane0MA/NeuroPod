@@ -129,9 +129,6 @@ flowchart LR
 
 ## 🛠️ Instalación local
 
-> **Nota**: Ver archivo [`Guia Minikube`](./Documentacion/GUIA_COMPLETA_CLOUDFLARE_TUNNEL_HECHO.md) y 
-[`Guia Minikube`](./Documentacion/GUIA_MINIKUBE_CONFIGURACION_HECHO.md).
-
 1. Instalar node.js
    ```powershell
    # Para permitir la ejecución de scripts en PowerShell abrimos como administrador la terminal
@@ -155,6 +152,7 @@ flowchart LR
    ```
 
 2. Completar las configuraciones de las guias.
+   > **Nota**: Ver archivo [`Guia Cloudflare`](./Documentacion/GUIA_COMPLETA_CLOUDFLARE_TUNNEL_HECHO.md) y [`Guia Minikube`](./Documentacion/GUIA_MINIKUBE_CONFIGURACION_HECHO.md).
 
 3. Configurar [Google Cloud Console](https://console.cloud.google.com)
    ```md
@@ -171,13 +169,13 @@ flowchart LR
    - Seleccionar **Aplicación Web** como tipo de aplicación.
    - Asignar el nombre **NeuroPod Web Client**.
    - Especificar los **Orígenes JavaScript autorizados**:
-     - `http://localhost:5173`
-     - `https://app.neuropod.online`
+     - http://localhost:5173
+     - https://app.neuropod.online
    - Definir las **URLs de redirección autorizadas**:
-     - `http://localhost:5173`
-     - `http://localhost:5173/login`
-     - `https://app.neuropod.online`
-     - `https://app.neuropod.online/login`
+     - http://localhost:5173
+     - http://localhost:5173/login
+     - https://app.neuropod.online
+     - https://app.neuropod.online/login
 
    ### 5. Agregar usuarios de prueba
    - Ve a **Público** y añade los usuarios de prueba.
@@ -186,22 +184,27 @@ flowchart LR
    - **ID CLIENTE**
    - **SECRETO DE CLIENTE**
    ```
+
+4. Iniciar los servicios con el script [Arrancar.bat](./Arrancar.bat).
+
+5. En caso de detener todo usar el script [Detener.bat](Detener.bat)
+
 ---
 
 ## 📁 Estructura del proyecto
 
 ```
-/backend
-  ├── controllers/
-  ├── models/
-  ├── routes/
-  └── utils/
+/NeuroPod-Backend
+  └── src/
 
-/frontend
+/NeuroPod-Frontend
   ├── src/
   └── public/
 
+Arrancar.bat
+Detener.bat
 LICENSE
+Neuropod_Tecnologias.docx
 README.md
 ```
 

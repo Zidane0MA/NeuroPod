@@ -1,4 +1,6 @@
-## 6. Configurar Cloudflared como Servicio en Windows
+# Configuraciones extras enfocadas en mantener como servicio (No testeado)
+
+## Configurar Cloudflared como Servicio en Windows
 
 Para que el túnel funcione permanentemente sin necesidad de mantener una ventana de PowerShell abierta:
 
@@ -23,9 +25,9 @@ Para que el túnel funcione permanentemente sin necesidad de mantener una ventan
 
 4. Comprueba nuevamente los subdominios para asegurarte de que siguen funcionando correctamente.
 
-## 7. Configuración Avanzada y Optimización
+## Configuración Avanzada y Optimización
 
-### 7.1. Reglas de Firewall en Cloudflare
+### A. Reglas de Firewall en Cloudflare
 
 Para proteger tus servicios, configura reglas de firewall en Cloudflare:
 
@@ -37,7 +39,7 @@ Ejemplo de regla para proteger el panel de administración:
 - Si: Hostname es `app.neuropod.online` Y Ruta comienza con `/admin`
 - Entonces: Desafiar (Challenge)
 
-### 7.2. Optimización de Caché
+### B. Optimización de Caché
 
 Para mejorar el rendimiento de archivos estáticos en el frontend:
 
@@ -46,16 +48,16 @@ Para mejorar el rendimiento de archivos estáticos en el frontend:
    - URL: `https://app.neuropod.online/assets/*`
    - Configuración: Cache Level = Cache Everything, Edge Cache TTL = 1 day
 
-### 7.3. Configurar Túnel para Alta Disponibilidad (Opcional)
+### C. Configurar Túnel para Alta Disponibilidad (Opcional)
 
 Para entornos de producción críticos, puedes configurar varios replicas del túnel:
 
 1. Ejecuta Cloudflared en varias máquinas usando el mismo archivo de configuración y credenciales.
 2. O en la misma máquina, ejecuta varias instancias del servicio con diferentes configuraciones de monitoreo.
 
-## 8. Solución de Problemas Comunes
+## Solución de Problemas Comunes
 
-### 8.1. El Túnel No Se Conecta
+### A. El Túnel No Se Conecta
 
 1. Verifica que las credenciales sean correctas:
    ```powershell
@@ -75,16 +77,16 @@ Para entornos de producción críticos, puedes configurar varios replicas del t�
    cloudflared.exe --loglevel debug tunnel run neuropod-tunnel
    ```
 
-### 8.2. Los Subdominios No Funcionan
+### B. Los Subdominios No Funcionan
 
 1. Verifica que los registros DNS estén configurados correctamente en Cloudflare.
 2. Comprueba que el proxy de Cloudflare esté activado (icono naranja).
 3. Asegúrate de que los servicios locales estén funcionando en los puertos correctos.
 4. Verifica que no haya reglas de bloqueo en Cloudflare.
 
-## 9. Seguridad Adicional
+## Seguridad Adicional
 
-### 9.1. Restringir Acceso por IP (Opcional)
+### A. Restringir Acceso por IP (Opcional)
 
 Para permitir acceso solo desde ciertas IPs:
 
@@ -93,20 +95,20 @@ Para permitir acceso solo desde ciertas IPs:
    - Si: IP de origen no en lista (agrega tus IPs permitidas)
    - Entonces: Bloquear
 
-### 9.2. Protección DDoS
+### B. Protección DDoS
 
 Cloudflare proporciona protección DDoS básica por defecto. Para mejorarla:
 
 1. Ve a "Seguridad" > "Configuración de seguridad".
 2. Ajusta el nivel de seguridad según tus necesidades (recomendado: Medio).
 
-### 9.3. Bot Management (Plan Enterprise)
+### C. Bot Management (Plan Enterprise)
 
 Si tienes un plan Enterprise, puedes configurar Bot Management para identificar y gestionar el tráfico de bots.
 
-## 10. Monitorización y Mantenimiento
+## Monitorización y Mantenimiento
 
-### 10.1. Monitoreo del Túnel
+### A. Monitoreo del Túnel
 
 1. Crea un script PowerShell para verificar periódicamente el estado del túnel:
    ```powershell
@@ -120,7 +122,7 @@ Si tienes un plan Enterprise, puedes configurar Bot Management para identificar 
 
 2. Programa la ejecución periódica con el Programador de tareas de Windows.
 
-### 10.2. Actualizaciones de Cloudflared
+### B. Actualizaciones de Cloudflared
 
 Actualiza regularmente Cloudflared para aprovechar las mejoras de seguridad:
 
@@ -133,4 +135,89 @@ Actualiza regularmente Cloudflared para aprovechar las mejoras de seguridad:
 4. Inicia el servicio:
    ```powershell
    Start-Service cloudflared
+   ```
+
+
+## Ejecutar Servicios en Segundo Plano en Windows
+
+1. **Usando PM2 para Node.js en Windows**:
+
+   ```powershell
+   # Instalar PM2 globalmente
+   npm install -g pm2
+   
+   # Iniciar el backend con PM2
+   cd C:\path\to\backend
+   pm2 start app.js --name neuropod-backend
+   
+   # Guardar la configuración para que se inicie al arrancar
+   pm2 save
+   
+   # Configurar PM2 para iniciar al arrancar Windows
+   pm2 startup
+   # Sigue las instrucciones que se muestran
+   ```
+
+2. **Configuración de Tareas Programadas para Monitorización**:
+
+   Crea un script PowerShell `check-api.ps1`:
+
+   ```powershell
+   # C:\scripts\check-api.ps1
+   try {
+       $response = Invoke-WebRequest -Uri "http://localhost:3000/api/status" -Method GET -UseBasicParsing
+       if ($response.StatusCode -ne 200) {
+           Write-Output "API no responde correctamente, reiniciando..."
+           pm2 restart neuropod-backend
+       }
+   } catch {
+       Write-Output "Error al conectar con la API, reiniciando..."
+       pm2 restart neuropod-backend
+   }
+   ```
+
+   Configurar una tarea programada:
+
+   ```powershell
+   # Crear una tarea programada (ejecutar como administrador)
+   $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-File C:\scripts\check-api.ps1"
+   $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 10)
+   $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+   $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+   Register-ScheduledTask -TaskName "NeuropodAPICheck" -Action $action -Trigger $trigger -Principal $principal -Settings $settings
+   ```
+
+## Consideraciones Específicas para Windows en Producción
+
+3. **Logs en Windows**:
+   
+   Configura Winston para usar rutas de Windows:
+
+   ```javascript
+   const winston = require('winston');
+   const path = require('path');
+   
+   // Asegúrate de que la carpeta de logs existe
+   const logsDir = path.join(__dirname, 'logs');
+   if (!fs.existsSync(logsDir)) {
+     fs.mkdirSync(logsDir);
+   }
+   
+   const logger = winston.createLogger({
+     level: 'info',
+     format: winston.format.combine(
+       winston.format.timestamp(),
+       winston.format.json()
+     ),
+     defaultMeta: { service: 'neuropod-api' },
+     transports: [
+       new winston.transports.File({ 
+         filename: path.join(logsDir, 'error.log'), 
+         level: 'error' 
+       }),
+       new winston.transports.File({ 
+         filename: path.join(logsDir, 'combined.log') 
+       }),
+     ]
+   });
    ```

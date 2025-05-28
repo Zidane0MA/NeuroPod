@@ -1,10 +1,11 @@
-# Pod de prueba ComfyUI con GPU (CORREGIDO)
+# Pod de prueba ComfyUI con GPU y PVC
 apiVersion: v1
 kind: Pod
 metadata:
   name: comfyui-gpu-test
   labels:
     app: comfyui-test
+    user: test-user
 spec:
   restartPolicy: Never
   containers:
@@ -27,17 +28,55 @@ spec:
       value: "--listen 0.0.0.0 --port 8188"
     volumeMounts:
     - name: workspace
-      mountPath: /app/ComfyUI/output
+      mountPath: /workspace
+    # Configurar ComfyUI para usar el PVC
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      # Crear estructura de directorios en el PVC
+      mkdir -p /workspace/models/checkpoints
+      mkdir -p /workspace/models/loras  
+      mkdir -p /workspace/models/vae
+      mkdir -p /workspace/output
+      mkdir -p /workspace/input
+      
+      # Crear enlaces simbólicos para que ComfyUI use el PVC
+      ln -sf /workspace/models /app/ComfyUI/models
+      ln -sf /workspace/output /app/ComfyUI/output
+      ln -sf /workspace/input /app/ComfyUI/input
+      
+      # Iniciar ComfyUI
+      cd /app/ComfyUI && python main.py --listen 0.0.0.0 --port 8188
   volumes:
   - name: workspace
-    emptyDir: {}
+    persistentVolumeClaim:
+      claimName: comfyui-test-pvc
 
 ---
-# Service para acceder al pod
+# PVC específico para este pod
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: comfyui-test-pvc
+  labels:
+    app: comfyui-test
+    user: test-user
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+# Service para ComfyUI
 apiVersion: v1
 kind: Service
 metadata:
   name: comfyui-gpu-test-service
+  labels:
+    app: comfyui-test
 spec:
   selector:
     app: comfyui-test
@@ -45,20 +84,17 @@ spec:
   - port: 8188
     targetPort: 8188
     protocol: TCP
+    name: comfyui
   type: ClusterIP
 
 ---
-# Ingress CORREGIDO para acceso externo (SIN SNIPPETS)
+# Ingress para ComfyUI
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: comfyui-gpu-test-ingress
   annotations:
-    # CONFIGURACIONES CRÍTICAS PARA CLOUDFLARE TUNNEL
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
-    # Configuraciones para WebSockets (ComfyUI) - SIN SNIPPETS
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
@@ -68,10 +104,10 @@ spec:
   ingressClassName: nginx  # ✅ USAR INGRESS CLASS ESTÁNDAR
   tls:  # ← CON sección TLS
   - hosts:
-    - user-123-pod-456.neuropod.online
+    - comfyui-5vrg43-8188.neuropod.online
     secretName: neuropod-tls
   rules:
-  - host: user-123-pod-456.neuropod.online
+  - host: comfyui-5vrg43-8188.neuropod.online
     http:
       paths:
       - path: /

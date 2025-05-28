@@ -1,0 +1,211 @@
+# =============================================================================
+# EJEMPLO: Pod con captura automática de token de Jupyter
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jupyter-token-capture
+  labels:
+    app: jupyter-token
+    user: test-user
+spec:
+  restartPolicy: Never
+  containers:
+  - name: main-app
+    image: zhangp365/comfyui
+    ports:
+    - containerPort: 8188
+      name: comfyui
+    - containerPort: 8888
+      name: jupyter
+    resources:
+      limits:
+        nvidia.com/gpu: "1"
+        memory: 8Gi
+        cpu: 4
+    volumeMounts:
+    - name: workspace
+      mountPath: /workspace
+    - name: jupyter-config
+      mountPath: /root/.jupyter
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      # Configurar workspace
+      mkdir -p /workspace/{models,output,input,notebooks}
+      ln -sf /workspace/models /app/ComfyUI/models
+      ln -sf /workspace/output /app/ComfyUI/output
+      ln -sf /workspace/input /app/ComfyUI/input
+      
+      # Instalar Jupyter Lab
+      pip install jupyterlab ipywidgets
+      
+      # MÉTODO 1: Generar token conocido
+      echo "Generando token conocido para Jupyter..."
+      JUPYTER_TOKEN="neuropod-$(openssl rand -hex 16)"
+      echo "Token generado: $JUPYTER_TOKEN"
+      
+      # Crear configuración de Jupyter con token fijo
+      mkdir -p /root/.jupyter
+      cat > /root/.jupyter/jupyter_lab_config.py << EOF
+      c.ServerApp.token = '$JUPYTER_TOKEN'
+      c.ServerApp.password = ''
+      c.ServerApp.open_browser = False
+      c.ServerApp.ip = '0.0.0.0'
+      c.ServerApp.port = 8888
+      c.ServerApp.allow_root = True
+      c.ServerApp.root_dir = '/workspace'
+      EOF
+      
+      # Escribir token a archivo para que el backend lo lea
+      echo "$JUPYTER_TOKEN" > /workspace/.jupyter_token
+      
+      # Iniciar Jupyter Lab con configuración
+      cd /workspace
+      jupyter lab &
+      JUPYTER_PID=$!
+      
+      # Esperar a que Jupyter inicie y verificar logs
+      sleep 5
+      echo "=== JUPYTER STARTUP LOGS ==="
+      jupyter server list || true
+      
+      # Iniciar ComfyUI
+      cd /app/ComfyUI && python main.py --listen 0.0.0.0 --port 8188 &
+      COMFYUI_PID=$!
+      
+      # Función para capturar token de logs (método alternativo)
+      capture_token_from_logs() {
+        echo "Buscando token en logs de Jupyter..."
+        timeout 30 bash -c '
+          while true; do
+            if jupyter server list 2>/dev/null | grep -o "token=[a-f0-9]*" | head -1 | cut -d= -f2 > /tmp/captured_token.txt; then
+              if [ -s /tmp/captured_token.txt ]; then
+                echo "Token capturado de logs: $(cat /tmp/captured_token.txt)"
+                cp /tmp/captured_token.txt /workspace/.jupyter_token_captured
+                break
+              fi
+            fi
+            sleep 2
+          done
+        '
+      }
+      
+      # Ejecutar captura en paralelo (backup)
+      capture_token_from_logs &
+      
+      # Mantener contenedor vivo
+      wait $JUPYTER_PID $COMFYUI_PID
+  volumes:
+  - name: workspace
+    persistentVolumeClaim:
+      claimName: jupyter-token-pvc
+  - name: jupyter-config
+    emptyDir: {}
+
+---
+# =============================================================================
+# SIDECAR: Contenedor para monitorear y reportar token
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jupyter-with-monitor
+  labels:
+    app: jupyter-monitor
+    user: test-user
+spec:
+  restartPolicy: Never
+  containers:
+  # Contenedor principal
+  - name: jupyter-app
+    image: jupyter/base-notebook:latest
+    ports:
+    - containerPort: 8888
+      name: jupyter
+    volumeMounts:
+    - name: shared-data
+      mountPath: /workspace
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      mkdir -p /workspace/notebooks
+      cd /workspace
+      
+      # Iniciar Jupyter y capturar token
+      jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root > /workspace/jupyter.log 2>&1 &
+      
+      # Esperar y extraer token de logs
+      sleep 10
+      grep -o 'token=[a-f0-9]*' /workspace/jupyter.log | head -1 | cut -d= -f2 > /workspace/.jupyter_token || echo "no-token" > /workspace/.jupyter_token
+      
+      # Mostrar información para debugging
+      echo "=== JUPYTER INFO ==="
+      echo "Token file content: $(cat /workspace/.jupyter_token)"
+      echo "Jupyter URL: http://0.0.0.0:8888/lab?token=$(cat /workspace/.jupyter_token)"
+      
+      # Mantener vivo
+      wait
+  
+  # Contenedor monitor/sidecar
+  - name: token-monitor
+    image: curlimages/curl:latest
+    volumeMounts:
+    - name: shared-data
+      mountPath: /workspace
+    command: ["/bin/sh", "-c"]
+    args:
+    - |
+      echo "Iniciando monitor de token..."
+      while true; do
+        if [ -f /workspace/.jupyter_token ]; then
+          TOKEN=$(cat /workspace/.jupyter_token)
+          if [ "$TOKEN" != "no-token" ] && [ ! -z "$TOKEN" ]; then
+            echo "Token detectado: $TOKEN"
+            echo "URL completa: https://jupyter-usr123-8888.neuropod.online/lab?token=$TOKEN"
+            
+            # Aquí el backend podría hacer una llamada API para reportar el token
+            # curl -X POST http://backend:3000/api/pods/update-token \
+            #   -H "Content-Type: application/json" \
+            #   -d "{\"podId\":\"test-pod\",\"jupyterToken\":\"$TOKEN\"}"
+            
+            # Una vez reportado, dormir más tiempo
+            sleep 300
+          else
+            echo "Esperando token válido..."
+            sleep 5
+          fi
+        else
+          echo "Esperando archivo de token..."
+          sleep 5
+        fi
+      done
+  volumes:
+  - name: shared-data
+    persistentVolumeClaim:
+      claimName: jupyter-monitor-pvc
+
+---
+# PVCs
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jupyter-token-pvc
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jupyter-monitor-pvc
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 20Gi

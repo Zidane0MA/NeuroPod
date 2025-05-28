@@ -7,17 +7,13 @@
 La arquitectura de red está diseñada de la siguiente manera:
 
 ```
-                                🌐 Internet
+                               🌐 Internet
                                       |
-                        +-------------+------------------------+
-                        |                                      |
-         DNS Wildcard (*.neuropod.online)                      |
-                        |                                      |
-            +-------------------------+                        |
+            +-------------------------+------------------------+
             |                         |                        |
             v                         v                        v
-    app.neuropod.onlin        api.neuropod.online       *.neuropod.online
-        (Frontend)               (Backend API)          (Pods de Usuario)
+  app.neuropod.online       api.neuropod.online   Wildcard (*.neuropod.online)
+      (Frontend)               (Backend API)           (Pods de Usuario)
             |                         |                        |
             v                         v                        v
 +-----------------------+--- Cloudflare Tunnel ---+-------------------------+

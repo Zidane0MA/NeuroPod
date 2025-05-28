@@ -406,17 +406,13 @@ kubectl logs -n ingress-nginx deployment/ingress-nginx-controller
 ## 🧩 Diagrama de Arquitectura
 
 ```
-                                🌐 Internet
+                               🌐 Internet
                                       |
-                        +-------------+------------------------+
-                        |                                      |
-         DNS Wildcard (*.neuropod.online)                      |
-                        |                                      |
-            +-------------------------+                        |
+            +-------------------------+------------------------+
             |                         |                        |
             v                         v                        v
-    app.neuropod.onlin        api.neuropod.online       *.neuropod.online
-        (Frontend)               (Backend API)          (Pods de Usuario)
+  app.neuropod.online       api.neuropod.online   Wildcard (*.neuropod.online)
+      (Frontend)               (Backend API)           (Pods de Usuario)
             |                         |                        |
             v                         v                        v
 +-----------------------+--- Cloudflare Tunnel ---+-------------------------+

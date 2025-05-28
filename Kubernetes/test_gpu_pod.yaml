@@ -1,0 +1,83 @@
+# Pod de prueba ComfyUI con GPU (CORREGIDO)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: comfyui-gpu-test
+  labels:
+    app: comfyui-test
+spec:
+  restartPolicy: Never
+  containers:
+  - name: comfyui
+    image: zhangp365/comfyui
+    ports:
+    - containerPort: 8188
+      name: comfyui-web
+    resources:
+      limits:
+        nvidia.com/gpu: "1"
+        memory: 8Gi
+        cpu: 4
+      requests:
+        nvidia.com/gpu: "1"
+        memory: 4Gi
+        cpu: 2
+    env:
+    - name: CLI_ARGS
+      value: "--listen 0.0.0.0 --port 8188"
+    volumeMounts:
+    - name: workspace
+      mountPath: /app/ComfyUI/output
+  volumes:
+  - name: workspace
+    emptyDir: {}
+
+---
+# Service para acceder al pod
+apiVersion: v1
+kind: Service
+metadata:
+  name: comfyui-gpu-test-service
+spec:
+  selector:
+    app: comfyui-test
+  ports:
+  - port: 8188
+    targetPort: 8188
+    protocol: TCP
+  type: ClusterIP
+
+---
+# Ingress CORREGIDO para acceso externo (SIN SNIPPETS)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: comfyui-gpu-test-ingress
+  annotations:
+    # CONFIGURACIONES CRÍTICAS PARA CLOUDFLARE TUNNEL
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    # Configuraciones para WebSockets (ComfyUI) - SIN SNIPPETS
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    # Headers estándar para WebSockets
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+spec:
+  ingressClassName: nginx  # ✅ USAR INGRESS CLASS ESTÁNDAR
+  tls:  # ← CON sección TLS
+  - hosts:
+    - user-123-pod-456.neuropod.online
+    secretName: neuropod-tls
+  rules:
+  - host: user-123-pod-456.neuropod.online
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: comfyui-gpu-test-service
+            port:
+              number: 8188

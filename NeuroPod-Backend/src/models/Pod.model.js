@@ -284,13 +284,6 @@ PodSchema.virtual('costPerHour').get(function() {
   return gpuPrice + containerDiskPrice + volumeDiskPrice;
 });
 
-// Método para generar subdominio único y seguro
-PodSchema.methods.generateSecureSubdomain = function(port) {
-  const safePodName = this.podName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-  const safePort = port.toString();
-  return `${safePodName}-${this.userHash}-${safePort}`;
-};
-
 // Método para actualizar estadísticas
 PodSchema.methods.updateStats = function(newStats) {
   if (!this.stats) {

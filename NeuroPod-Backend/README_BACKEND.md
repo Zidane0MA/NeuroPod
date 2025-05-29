@@ -79,7 +79,7 @@ src/
 
 ```
 
-## API Endpoints
+## API Endpoints creadas
 
 ### Rutas Públicas `src/app.js`
 
@@ -91,9 +91,9 @@ src/
 
 ### Rutas de status - `src/routes/status.routes.js`
 
-- ✅ `GET /api/status` - Estado del sistema
-- ✅ `GET /api/status/pricing` - Configuración de precios
-- ✅ `POST /api/status/calculate-cost` - Calcular costo
+- ✅ GET `/api/status` - Estado del sistema
+- ✅ GET `/api/status/pricing` - Configuración de precios
+- ✅ POST ` /api/status/calculate-cost` - Calcular costo
 
 ### Autenticación - `src/routes/auth.routes.js`
 
@@ -111,14 +111,14 @@ src/
 
 ### Gestión de Pods `src\routes\pod.routes.js`
 
-- ✅ `GET /api/pods` - Obtener pods del usuario actual
-- ✅ `POST /api/pods` - Crear nuevo pod
-- ✅ `GET /api/pods/admin?userEmail=email` - Admin buscar pods por usuario  
-- ✅ `GET /api/pods/:podId/connections` - Información de conexiones
-- ✅ `GET /api/pods/:podId/logs` - Logs del pod
-- ✅ `POST /api/pods/:podId/start` - Iniciar pod
-- ✅ `POST /api/pods/:podId/stop` - Detener pod  
-- ✅ `DELETE /api/pods/:podId` - Eliminar pod
+- ✅ GET `/api/pods` - Obtener pods del usuario actual
+- ✅ POST ` /api/pods` - Crear nuevo pod
+- ✅ GET `/api/pods/admin?userEmail=email` - Admin buscar pods por usuario  
+- ✅ GET `/api/pods/:podId/connections` - Información de conexiones
+- ✅ GET `/api/pods/:podId/logs` - Logs del pod
+- ✅ POST ` /api/pods/:podId/start` - Iniciar pod
+- ✅ POST ` /api/pods/:podId/stop` - Detener pod  
+- ✅ DELETE ` /api/pods/:podId` - Eliminar pod
 
 ### Gestión de Plantillas `src\routes\template.routes.js`
 

@@ -5,64 +5,15 @@ const kubernetesService = require('../services/kubernetes.service');
 const podMonitorService = require('../services/podMonitor.service');
 const { logAction } = require('../utils/logger');
 
+// =========================================
+// CONTROLADORES PRINCIPALES
+// =========================================
+
 // Obtener todos los pods del usuario actual
 exports.getPods = async (req, res) => {
   try {
-    let pods;
+    const { pods, formattedPods } = await getPodsForUser(req);
     
-    // Si hay parámetro userEmail y el usuario es admin, buscar pods por email
-    if (req.query.userEmail && req.user.role === 'admin') {
-      const targetUser = await User.findOne({ email: req.query.userEmail });
-      if (!targetUser) {
-        return res.status(404).json({
-          success: false,
-          message: 'Usuario no encontrado'
-        });
-      }
-      
-      pods = await Pod.find({ userId: targetUser._id })
-        .populate('userId', 'email name')
-        .populate('templateId', 'name')
-        .sort({ createdAt: -1 });
-        
-      // Agregar email del usuario a cada pod
-      pods = pods.map(pod => {
-        const podObj = pod.toObject();
-        podObj.userEmail = req.query.userEmail;
-        return podObj;
-      });
-      
-    } else if (req.user.role === 'admin') {
-      // Admin sin parámetro userEmail: obtener solo sus pods
-      pods = await Pod.find({ userId: req.user._id })
-        .populate('userId', 'email name')
-        .populate('templateId', 'name')
-        .sort({ createdAt: -1 });
-        
-    } else {
-      // Usuario regular: obtener solo sus pods
-      pods = await Pod.find({ userId: req.user._id })
-        .populate('templateId', 'name')
-        .sort({ createdAt: -1 });
-    }
-    
-    // Formatear los pods para la respuesta
-    const formattedPods = pods.map(pod => {
-      return {
-        podId: pod.podId,
-        podName: pod.podName,
-        status: pod.status,
-        gpu: pod.gpu,
-        containerDiskSize: pod.containerDiskSize,
-        volumeDiskSize: pod.volumeDiskSize,
-        createdAt: pod.createdAt,
-        lastActive: pod.lastActive,
-        stats: pod.stats,
-        userEmail: pod.userEmail || (pod.userId && typeof pod.userId === 'object' ? pod.userId.email : undefined)
-      };
-    });
-    
-    // Registrar acción
     await logAction(req.user._id, 'GET_PODS', { 
       userEmail: req.query.userEmail || 'self',
       count: pods.length 
@@ -74,12 +25,7 @@ exports.getPods = async (req, res) => {
       data: formattedPods
     });
   } catch (error) {
-    console.error('Error al obtener pods:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener pods',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    handleControllerError(res, error, 'Error al obtener pods');
   }
 };
 
@@ -87,34 +33,15 @@ exports.getPods = async (req, res) => {
 exports.getPodConnections = async (req, res) => {
   try {
     const { podId } = req.params;
-    
-    const pod = await Pod.findOne({ podId });
-    
-    if (!pod) {
-      return res.status(404).json({
-        success: false,
-        message: 'Pod no encontrado'
-      });
-    }
-    
-    // Verificar acceso
-    if (req.user.role !== 'admin' && pod.userId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permiso para acceder a este pod'
-      });
-    }
+    const pod = await findPodWithAccess(podId, req.user);
     
     // Forzar actualización del estado del pod
     await podMonitorService.monitorPod(podId);
     
-    // Obtener pod actualizado
+    // Obtener pod actualizado y información de conexiones
     const updatedPod = await Pod.findOne({ podId });
-    
-    // Obtener información de conexiones
     const connectionInfo = updatedPod.getConnectionInfo();
     
-    // Registrar acción
     await logAction(req.user._id, 'GET_POD_CONNECTIONS', { podId });
     
     res.status(200).json({
@@ -122,141 +49,32 @@ exports.getPodConnections = async (req, res) => {
       data: connectionInfo
     });
   } catch (error) {
-    console.error('Error al obtener conexiones del pod:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener conexiones',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    handleControllerError(res, error, 'Error al obtener conexiones');
   }
 };
 
 // Crear un nuevo pod
 exports.createPod = async (req, res) => {
   try {
-    const {
-      name,
-      deploymentType,
-      template,
-      dockerImage,
-      gpu,
-      containerDiskSize,
-      volumeDiskSize,
-      ports,
-      enableJupyter,
-      assignToUser
-    } = req.body;
-    
-    // Validaciones básicas
+    // Validaciones y preparación
     const errors = await validatePodPayload(req.body, req.user);
     if (errors.length > 0) {
-      return res.status(400).json({
-        success: false,
-        errors
-      });
+      return res.status(400).json({ success: false, errors });
     }
     
-    // Determinar el propietario del pod
-    let podOwner;
-    if (req.body.assignToUser && req.user.role === "admin") {
-      podOwner = await User.findOne({ email: req.body.assignToUser });
-      if (!podOwner) {
-        return res.status(404).json({
-          success: false,
-          message: 'Usuario destino no encontrado'
-        });
-      }
-    } else {
-      podOwner = req.user;
-    }
+    const podOwner = await determinePodOwner(req.body, req.user);
+    await validateUserBalance(podOwner, req.body);
     
-    // Validar saldo (solo para clientes)
-    if (podOwner.role === "client") {
-      const estimatedCost = calculatePodCost(req.body);
-      if (podOwner.balance < estimatedCost) {
-        return res.status(400).json({
-          success: false,
-          message: `Saldo insuficiente. Requerido: €${estimatedCost}, Disponible: €${podOwner.balance}`
-        });
-      }
-    }
-    
-    // Procesar configuración del pod
+    // Procesar configuración y crear pod
     const { finalDockerImage, httpServices, tcpServices } = await processPodConfiguration(req.body);
-    
-    // Crear el pod en la base de datos
-    const pod = await Pod.create({
-      podName: name,
-      userId: podOwner._id,
-      createdBy: req.user._id,
-      deploymentType,
-      templateId: deploymentType === 'template' ? template : undefined,
-      dockerImage: finalDockerImage,
-      gpu,
-      containerDiskSize,
-      volumeDiskSize,
-      enableJupyter,
-      httpServices,
-      tcpServices,
-      kubernetesResources: {
-        podName: '', // Se generará en el pre-save
-        pvcName: '', // Se generará en el pre-save
-        namespace: 'default'
-      }
-    });
+    const pod = await createPodRecord(req.body, podOwner, req.user, finalDockerImage, httpServices, tcpServices);
     
     // Crear recursos en Kubernetes (asíncrono)
-    setImmediate(async () => {
-      try {
-        const kubernetesResult = await kubernetesService.createPodWithServices({
-          name: pod.podName,
-          userId: podOwner._id.toString(),
-          dockerImage: finalDockerImage,
-          ports: ports,
-          containerDiskSize,
-          volumeDiskSize,
-          gpu,
-          enableJupyter
-        });
-        
-        // Actualizar el pod con información de Kubernetes
-        pod.status = 'creating';
-        await pod.save();
-        
-        // Capturar token de Jupyter si es necesario (después de un delay)
-        if (enableJupyter) {
-          setTimeout(async () => {
-            try {
-              const token = await kubernetesService.captureJupyterToken(pod.podName, pod.userHash);
-              if (token) {
-                const jupyterService = pod.httpServices.find(s => s.port === 8888);
-                if (jupyterService) {
-                  jupyterService.jupyterToken = token;
-                  await pod.save();
-                }
-              }
-            } catch (err) {
-              console.error('Error capturando token Jupyter:', err);
-            }
-          }, 15000); // Esperar 15 segundos
-        }
-        
-      } catch (err) {
-        console.error('Error creando recursos Kubernetes:', err);
-        pod.status = 'error';
-        await pod.save();
-      }
-    });
+    createKubernetesResourcesAsync(pod, podOwner, req.body);
     
-    // Descontar saldo si es cliente
-    if (podOwner.role === 'client') {
-      const cost = calculatePodCost(req.body);
-      await User.findByIdAndUpdate(podOwner._id, { 
-        $inc: { balance: -cost } 
-      });
-    }
+    // Descontar saldo si es necesario
+    await deductBalanceIfClient(podOwner, req.body);
     
-    // Registrar acción
     await logAction(req.user._id, 'CREATE_POD', { 
       podId: pod.podId,
       targetUser: podOwner._id !== req.user._id ? podOwner._id : undefined
@@ -273,12 +91,7 @@ exports.createPod = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error al crear pod:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error interno al crear el pod',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    handleControllerError(res, error, 'Error interno al crear el pod');
   }
 };
 
@@ -286,84 +99,26 @@ exports.createPod = async (req, res) => {
 exports.startPod = async (req, res) => {
   try {
     const { podId } = req.params;
+    const pod = await findPodWithAccess(podId, req.user);
     
-    const pod = await Pod.findOne({ podId });
+    validatePodState(pod, 'running', 'El pod ya está en ejecución');
     
-    if (!pod) {
-      return res.status(404).json({
-        success: false,
-        message: 'Pod no encontrado'
-      });
-    }
+    // Recrear el pod en Kubernetes (asíncrono)
+    recreateKubernetesResourcesAsync(pod);
     
-    // Verificar acceso
-    if (req.user.role !== 'admin' && pod.userId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permiso para iniciar este pod'
-      });
-    }
+    // Actualizar estado inmediatamente
+    await updatePodStatus(pod, 'creating');
     
-    if (pod.status === 'running') {
-      return res.status(400).json({
-        success: false,
-        message: 'El pod ya está en ejecución'
-      });
-    }
-    
-    // Recrear el pod en Kubernetes
-    setImmediate(async () => {
-      try {
-        await kubernetesService.createPodWithServices({
-          name: pod.podName,
-          userId: pod.userId.toString(),
-          dockerImage: pod.dockerImage,
-          ports: pod.httpServices.map(s => s.port).join(','),
-          containerDiskSize: pod.containerDiskSize,
-          volumeDiskSize: pod.volumeDiskSize,
-          gpu: pod.gpu,
-          enableJupyter: pod.enableJupyter
-        });
-        
-        pod.status = 'creating';
-        pod.httpServices.forEach(service => {
-          service.status = 'creating';
-        });
-        await pod.save();
-        
-      } catch (err) {
-        console.error('Error iniciando pod:', err);
-        pod.status = 'error';
-        await pod.save();
-      }
-    });
-    
-    // Actualizar estado inmediatamente en la BD
-    pod.status = 'creating';
-    pod.httpServices.forEach(service => {
-      service.status = 'creating';
-    });
-    await pod.save();
-    
-    // Registrar acción
     await logAction(req.user._id, 'START_POD', { podId });
     
     res.status(200).json({
       success: true,
       message: 'Pod iniciándose',
-      data: {
-        podId: pod.podId,
-        status: 'creating'
-      }
+      data: { podId: pod.podId, status: 'creating' }
     });
     
   } catch (error) {
-    console.error('Error al iniciar pod:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error interno al iniciar el pod',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    handleControllerError(res, error, 'Error interno al iniciar el pod');
   }
 };
 
@@ -371,83 +126,26 @@ exports.startPod = async (req, res) => {
 exports.stopPod = async (req, res) => {
   try {
     const { podId } = req.params;
+    const pod = await findPodWithAccess(podId, req.user);
     
-    const pod = await Pod.findOne({ podId });
+    validatePodState(pod, 'stopped', 'El pod ya está detenido');
     
-    if (!pod) {
-      return res.status(404).json({
-        success: false,
-        message: 'Pod no encontrado'
-      });
-    }
+    // Eliminar recursos de Kubernetes (asíncrono)
+    deleteKubernetesResourcesAsync(pod);
     
-    // Verificar acceso
-    if (req.user.role !== 'admin' && pod.userId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permiso para detener este pod'
-      });
-    }
+    // Actualizar estado inmediatamente
+    await updatePodStatus(pod, 'stopped');
     
-    if (pod.status === 'stopped') {
-      return res.status(400).json({
-        success: false,
-        message: 'El pod ya está detenido'
-      });
-    }
-    
-    // Eliminar recursos de Kubernetes
-    setImmediate(async () => {
-      try {
-        const services = pod.httpServices.map(service => ({
-          serviceName: service.kubernetesServiceName,
-          ingressName: service.kubernetesIngressName
-        }));
-        
-        await kubernetesService.deletePodResources(pod.podName, pod.userHash, services);
-        
-        pod.status = 'stopped';
-        pod.httpServices.forEach(service => {
-          service.status = 'stopped';
-        });
-        pod.tcpServices.forEach(service => {
-          if (service.status !== 'disable') {
-            service.status = 'stopped';
-          }
-        });
-        await pod.save();
-        
-      } catch (err) {
-        console.error('Error deteniendo pod:', err);
-      }
-    });
-    
-    // Actualizar estado inmediatamente en la BD
-    pod.status = 'stopped';
-    pod.httpServices.forEach(service => {
-      service.status = 'stopped';
-    });
-    await pod.save();
-    
-    // Registrar acción
     await logAction(req.user._id, 'STOP_POD', { podId });
     
     res.status(200).json({
       success: true,
       message: 'Pod detenido correctamente',
-      data: {
-        podId: pod.podId,
-        status: 'stopped'
-      }
+      data: { podId: pod.podId, status: 'stopped' }
     });
     
   } catch (error) {
-    console.error('Error al detener pod:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error interno al detener el pod',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    handleControllerError(res, error, 'Error interno al detener el pod');
   }
 };
 
@@ -455,42 +153,16 @@ exports.stopPod = async (req, res) => {
 exports.deletePod = async (req, res) => {
   try {
     const { podId } = req.params;
-    
-    const pod = await Pod.findOne({ podId });
-    
-    if (!pod) {
-      return res.status(404).json({
-        success: false,
-        message: 'Pod no encontrado'
-      });
-    }
-    
-    // Verificar acceso
-    if (req.user.role !== 'admin' && pod.userId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permiso para eliminar este pod'
-      });
-    }
+    const pod = await findPodWithAccess(podId, req.user);
     
     // Detener el pod primero si está en ejecución
-    if (pod.status === 'running' || pod.status === 'creating') {
-      const services = pod.httpServices.map(service => ({
-        serviceName: service.kubernetesServiceName,
-        ingressName: service.kubernetesIngressName
-      }));
-      
-      try {
-        await kubernetesService.deletePodResources(pod.podName, pod.userHash, services);
-      } catch (err) {
-        console.warn('Warning al eliminar recursos K8s:', err.message);
-      }
+    if (['running', 'creating'].includes(pod.status)) {
+      await stopPodResources(pod);
     }
     
     // Eliminar el pod de la base de datos
     await Pod.findByIdAndDelete(pod._id);
     
-    // Registrar acción
     await logAction(req.user._id, 'DELETE_POD', { podId });
     
     res.status(200).json({
@@ -499,12 +171,7 @@ exports.deletePod = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error al eliminar pod:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error interno al eliminar el pod',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    handleControllerError(res, error, 'Error interno al eliminar el pod');
   }
 };
 
@@ -512,58 +179,311 @@ exports.deletePod = async (req, res) => {
 exports.getPodLogs = async (req, res) => {
   try {
     const { podId } = req.params;
+    const pod = await findPodWithAccess(podId, req.user);
     
-    const pod = await Pod.findOne({ podId });
+    const logs = await getPodLogsContent(pod);
     
-    if (!pod) {
-      return res.status(404).json({
-        success: false,
-        message: 'Pod no encontrado'
-      });
-    }
-    
-    // Verificar acceso
-    if (req.user.role !== 'admin' && pod.userId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permiso para acceder a los logs de este pod'
-      });
-    }
-    
-    // Obtener logs desde Kubernetes
-    let logs = 'No hay logs disponibles.';
-    
-    if (pod.status === 'stopped') {
-      logs = 'El pod está detenido. No hay logs disponibles.';
-    } else {
-      try {
-        logs = await kubernetesService.getPodLogs(pod.podName, pod.userHash);
-      } catch (err) {
-        logs = 'No se pudieron obtener los logs. El pod podría estar iniciándose.';
-      }
-    }
-    
-    // Registrar acción
     await logAction(req.user._id, 'GET_POD_LOGS', { podId });
     
     res.status(200).json({
       success: true,
-      data: {
-        logs: logs
-      }
+      data: { logs }
     });
     
   } catch (error) {
-    console.error('Error al obtener logs del pod:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error interno al obtener logs',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    handleControllerError(res, error, 'Error interno al obtener logs');
   }
 };
 
-// Funciones auxiliares
+// =========================================
+// FUNCIONES AUXILIARES PRINCIPALES
+// =========================================
+
+async function findPodWithAccess(podId, user) {
+  const pod = await Pod.findOne({ podId });
+  
+  if (!pod) {
+    const error = new Error('Pod no encontrado');
+    error.statusCode = 404;
+    throw error;
+  }
+  
+  // Verificar acceso
+  if (user.role !== 'admin' && pod.userId.toString() !== user._id.toString()) {
+    const error = new Error('No tienes permiso para acceder a este pod');
+    error.statusCode = 403;
+    throw error;
+  }
+  
+  return pod;
+}
+
+function validatePodState(pod, invalidState, message) {
+  if (pod.status === invalidState) {
+    const error = new Error(message);
+    error.statusCode = 400;
+    throw error;
+  }
+}
+
+async function updatePodStatus(pod, status) {
+  pod.status = status;
+  pod.httpServices.forEach(service => {
+    service.status = status;
+  });
+  if (status === 'stopped') {
+    pod.tcpServices.forEach(service => {
+      if (service.status !== 'disable') {
+        service.status = 'stopped';
+      }
+    });
+  }
+  await pod.save();
+}
+
+function handleControllerError(res, error, defaultMessage) {
+  console.error(`${defaultMessage}:`, error);
+  
+  const statusCode = error.statusCode || 500;
+  const message = error.statusCode ? error.message : defaultMessage;
+  
+  res.status(statusCode).json({
+    success: false,
+    message,
+    error: process.env.NODE_ENV === 'development' ? error.message : undefined
+  });
+}
+
+// =========================================
+// FUNCIONES DE LÓGICA DE NEGOCIO
+// =========================================
+
+async function getPodsForUser(req) {
+  let pods;
+  
+  // Si hay parámetro userEmail y el usuario es admin, buscar pods por email
+  if (req.query.userEmail && req.user.role === 'admin') {
+    const targetUser = await User.findOne({ email: req.query.userEmail });
+    if (!targetUser) {
+      const error = new Error('Usuario no encontrado');
+      error.statusCode = 404;
+      throw error;
+    }
+    
+    pods = await Pod.find({ userId: targetUser._id })
+      .populate('userId', 'email name')
+      .populate('templateId', 'name')
+      .sort({ createdAt: -1 });
+      
+    // Agregar email del usuario a cada pod
+    pods = pods.map(pod => {
+      const podObj = pod.toObject();
+      podObj.userEmail = req.query.userEmail;
+      return podObj;
+    });
+    
+  } else if (req.user.role === 'admin') {
+    // Admin sin parámetro userEmail: obtener solo sus pods
+    pods = await Pod.find({ userId: req.user._id })
+      .populate('userId', 'email name')
+      .populate('templateId', 'name')
+      .sort({ createdAt: -1 });
+      
+  } else {
+    // Usuario regular: obtener solo sus pods
+    pods = await Pod.find({ userId: req.user._id })
+      .populate('templateId', 'name')
+      .sort({ createdAt: -1 });
+  }
+  
+  // Formatear los pods para la respuesta
+  const formattedPods = pods.map(pod => ({
+    podId: pod.podId,
+    podName: pod.podName,
+    status: pod.status,
+    gpu: pod.gpu,
+    containerDiskSize: pod.containerDiskSize,
+    volumeDiskSize: pod.volumeDiskSize,
+    createdAt: pod.createdAt,
+    lastActive: pod.lastActive,
+    stats: pod.stats,
+    userEmail: pod.userEmail || (pod.userId && typeof pod.userId === 'object' ? pod.userId.email : undefined)
+  }));
+  
+  return { pods, formattedPods };
+}
+
+async function determinePodOwner(body, currentUser) {
+  if (body.assignToUser && currentUser.role === "admin") {
+    const podOwner = await User.findOne({ email: body.assignToUser });
+    if (!podOwner) {
+      const error = new Error('Usuario destino no encontrado');
+      error.statusCode = 404;
+      throw error;
+    }
+    return podOwner;
+  }
+  return currentUser;
+}
+
+async function validateUserBalance(podOwner, body) {
+  if (podOwner.role === "client") {
+    const estimatedCost = calculatePodCost(body);
+    if (podOwner.balance < estimatedCost) {
+      const error = new Error(`Saldo insuficiente. Requerido: €${estimatedCost}, Disponible: €${podOwner.balance}`);
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+}
+
+async function createPodRecord(body, podOwner, currentUser, finalDockerImage, httpServices, tcpServices) {
+  const { name, deploymentType, template, gpu, containerDiskSize, volumeDiskSize, enableJupyter } = body;
+  
+  return await Pod.create({
+    podName: name,
+    userId: podOwner._id,
+    createdBy: currentUser._id,
+    deploymentType,
+    templateId: deploymentType === 'template' ? template : undefined,
+    dockerImage: finalDockerImage,
+    gpu,
+    containerDiskSize,
+    volumeDiskSize,
+    enableJupyter,
+    httpServices,
+    tcpServices,
+    kubernetesResources: {
+      podName: '', // Se generará en el pre-save
+      pvcName: '', // Se generará en el pre-save
+      namespace: 'default'
+    }
+  });
+}
+
+async function deductBalanceIfClient(podOwner, body) {
+  if (podOwner.role === 'client') {
+    const cost = calculatePodCost(body);
+    await User.findByIdAndUpdate(podOwner._id, { 
+      $inc: { balance: -cost } 
+    });
+  }
+}
+
+async function getPodLogsContent(pod) {
+  if (pod.status === 'stopped') {
+    return 'El pod está detenido. No hay logs disponibles.';
+  }
+  
+  try {
+    return await kubernetesService.getPodLogs(pod.podName, pod.userHash);
+  } catch (err) {
+    return 'No se pudieron obtener los logs. El pod podría estar iniciándose.';
+  }
+}
+
+async function stopPodResources(pod) {
+  const services = pod.httpServices.map(service => ({
+    serviceName: service.kubernetesServiceName,
+    ingressName: service.kubernetesIngressName
+  }));
+  
+  try {
+    await kubernetesService.deletePodResources(pod.podName, pod.userHash, services);
+  } catch (err) {
+    console.warn('Warning al eliminar recursos K8s:', err.message);
+  }
+}
+
+// =========================================
+// FUNCIONES ASÍNCRONAS DE KUBERNETES
+// =========================================
+
+function createKubernetesResourcesAsync(pod, podOwner, body) {
+  setImmediate(async () => {
+    try {
+      await kubernetesService.createPodWithServices({
+        name: pod.podName,
+        userId: podOwner._id.toString(),
+        dockerImage: pod.dockerImage,
+        ports: body.ports,
+        containerDiskSize: body.containerDiskSize,
+        volumeDiskSize: body.volumeDiskSize,
+        gpu: body.gpu,
+        enableJupyter: body.enableJupyter
+      });
+      
+      pod.status = 'creating';
+      await pod.save();
+      
+      // Capturar token de Jupyter si es necesario
+      if (body.enableJupyter) {
+        scheduleJupyterTokenCapture(pod);
+      }
+      
+    } catch (err) {
+      console.error('Error creando recursos Kubernetes:', err);
+      pod.status = 'error';
+      await pod.save();
+    }
+  });
+}
+
+function recreateKubernetesResourcesAsync(pod) {
+  setImmediate(async () => {
+    try {
+      await kubernetesService.createPodWithServices({
+        name: pod.podName,
+        userId: pod.userId.toString(),
+        dockerImage: pod.dockerImage,
+        ports: pod.httpServices.map(s => s.port).join(','),
+        containerDiskSize: pod.containerDiskSize,
+        volumeDiskSize: pod.volumeDiskSize,
+        gpu: pod.gpu,
+        enableJupyter: pod.enableJupyter
+      });
+      
+      await updatePodStatus(pod, 'creating');
+      
+    } catch (err) {
+      console.error('Error iniciando pod:', err);
+      pod.status = 'error';
+      await pod.save();
+    }
+  });
+}
+
+function deleteKubernetesResourcesAsync(pod) {
+  setImmediate(async () => {
+    try {
+      await stopPodResources(pod);
+      await updatePodStatus(pod, 'stopped');
+    } catch (err) {
+      console.error('Error deteniendo pod:', err);
+    }
+  });
+}
+
+function scheduleJupyterTokenCapture(pod) {
+  setTimeout(async () => {
+    try {
+      const token = await kubernetesService.captureJupyterToken(pod.podName, pod.userHash);
+      if (token) {
+        const jupyterService = pod.httpServices.find(s => s.port === 8888);
+        if (jupyterService) {
+          jupyterService.jupyterToken = token;
+          await pod.save();
+        }
+      }
+    } catch (err) {
+      console.error('Error capturando token Jupyter:', err);
+    }
+  }, 15000); // Esperar 15 segundos
+}
+
+// =========================================
+// FUNCIONES DE VALIDACIÓN Y CONFIGURACIÓN
+// =========================================
 
 async function validatePodPayload(payload, currentUser) {
   const errors = [];
@@ -624,111 +544,66 @@ async function processPodConfiguration(payload) {
     }
     
     finalDockerImage = template.dockerImage;
-    
-    // Asignar nombres de servicios basados en el template
     httpServices = assignServiceNames(portsArray, template.httpPorts, payload.enableJupyter);
     
   } else {
     // Imagen Docker personalizada
     finalDockerImage = payload.dockerImage;
-    
-    // Asignar nombres genéricos
     httpServices = assignServiceNamesDocker(portsArray, payload.enableJupyter);
   }
   
   // Servicios TCP (decorativos)
-  tcpServices = [
-    {
-      port: 22,
-      serviceName: 'SSH',
-      url: `tcp://placeholder.neuropod.online:22`,
-      isCustom: false,
-      status: 'disable'
-    }
-  ];
+  tcpServices = [{
+    port: 22,
+    serviceName: 'SSH',
+    url: `tcp://placeholder.neuropod.online:22`,
+    isCustom: false,
+    status: 'disable'
+  }];
   
   return { finalDockerImage, httpServices, tcpServices };
 }
 
 function assignServiceNames(userPorts, templatePorts, enableJupyter) {
-  const result = [];
-  
-  userPorts.forEach((port, index) => {
+  return userPorts.map((port, index) => {
     // 1. Buscar match exacto en template
     const templateMatch = templatePorts.find(tp => tp.port === port);
     if (templateMatch) {
-      result.push({
-        port: port,
-        serviceName: templateMatch.serviceName,
-        isCustom: false,
-        status: 'creating',
-        url: `https://placeholder-${port}.neuropod.online`,
-        kubernetesServiceName: '',
-        kubernetesIngressName: ''
-      });
-      return;
+      return createServiceObject(port, templateMatch.serviceName, false);
     }
     
     // 2. Si es puerto 8888 y Jupyter está habilitado
     if (port === 8888 && enableJupyter) {
-      result.push({
-        port: 8888,
-        serviceName: "Jupyter Lab",
-        isCustom: false,
-        status: 'creating',
-        url: `https://placeholder-8888.neuropod.online`,
-        kubernetesServiceName: '',
-        kubernetesIngressName: ''
-      });
-      return;
+      return createServiceObject(8888, "Jupyter Lab", false);
     }
     
     // 3. Puerto personalizado agregado por usuario
-    result.push({
-      port: port,
-      serviceName: `Servicio ${index + 1}`,
-      isCustom: true,
-      status: 'creating',
-      url: `https://placeholder-${port}.neuropod.online`,
-      kubernetesServiceName: '',
-      kubernetesIngressName: ''
-    });
+    return createServiceObject(port, `Servicio ${index + 1}`, true);
   });
-  
-  return result;
 }
 
 function assignServiceNamesDocker(userPorts, enableJupyter) {
-  const result = [];
-  
-  userPorts.forEach((port, index) => {
+  return userPorts.map((port, index) => {
     // Si es puerto 8888 y Jupyter está habilitado
     if (port === 8888 && enableJupyter) {
-      result.push({
-        port: 8888,
-        serviceName: "Jupyter Lab",
-        isCustom: false,
-        status: 'creating',
-        url: `https://placeholder-8888.neuropod.online`,
-        kubernetesServiceName: '',
-        kubernetesIngressName: ''
-      });
-      return;
+      return createServiceObject(8888, "Jupyter Lab", false);
     }
     
     // Para todos los demás puertos
-    result.push({
-      port: port,
-      serviceName: `Servicio ${index + 1}`,
-      isCustom: true,
-      status: 'creating',
-      url: `https://placeholder-${port}.neuropod.online`,
-      kubernetesServiceName: '',
-      kubernetesIngressName: ''
-    });
+    return createServiceObject(port, `Servicio ${index + 1}`, true);
   });
-  
-  return result;
+}
+
+function createServiceObject(port, serviceName, isCustom) {
+  return {
+    port,
+    serviceName,
+    isCustom,
+    status: 'creating',
+    url: `https://placeholder-${port}.neuropod.online`,
+    kubernetesServiceName: '',
+    kubernetesIngressName: ''
+  };
 }
 
 function calculatePodCost(podConfig) {

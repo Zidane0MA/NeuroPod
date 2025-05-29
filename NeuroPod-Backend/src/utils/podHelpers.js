@@ -68,7 +68,7 @@ function validatePorts(ports) {
       continue;
     }
     
-    if (port < 1024 && ![22, 80, 443].includes(port)) {
+    if (port < 1024 && ![22, 80, 3000, 5173, 443].includes(port)) {
       errors.push(`Puerto privilegiado no permitido: ${port}`);
       continue;
     }

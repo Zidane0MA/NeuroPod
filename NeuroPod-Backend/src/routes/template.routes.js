@@ -8,19 +8,16 @@ router.use(protect);
 
 // GET /api/templates - Obtener todas las plantillas
 router.get('/', templateController.getTemplates);
+// POST /api/templates - Crear nueva plantilla (solo admins)
+router.post('/', authorize('admin'), templateController.createTemplate);
 
 // GET /api/templates/summary - Obtener resumen de plantillas (para dashboard)
 router.get('/summary', templateController.getTemplatesSummary);
 
 // GET /api/templates/:id - Obtener una plantilla específica
 router.get('/:id', templateController.getTemplateById);
-
-// POST /api/templates - Crear nueva plantilla (solo admins)
-router.post('/', authorize('admin'), templateController.createTemplate);
-
 // PUT /api/templates/:id - Actualizar plantilla (solo el creador o admin)
 router.put('/:id', templateController.updateTemplate);
-
 // DELETE /api/templates/:id - Eliminar plantilla (solo el creador o admin)
 router.delete('/:id', templateController.deleteTemplate);
 

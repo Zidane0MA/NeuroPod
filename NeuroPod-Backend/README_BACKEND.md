@@ -29,25 +29,10 @@ npm run seed
 npm run seed:templates
 ```
 
-## Configuración
-
-Crea un archivo `.env` en la raíz del proyecto con las siguientes variables:
-
-```
-NODE_ENV=development
-PORT=3000
-MONGODB_URI=mongodb://localhost:27017/plataforma
-JWT_SECRET=tu_clave_secreta_super_segura
-JWT_EXPIRE=24h
-GOOGLE_CLIENT_ID=tu_google_client_id
-GOOGLE_CLIENT_SECRET=tu_google_client_secret
-FRONTEND_URL=http://localhost:5173
-ADMIN_EMAILS=lolerodiez@gmail.com
-```
-
 ## Estructura del Proyecto
 
 ```
+.env
 src/
 ├── app.js                # Configuración de Express
 ├── server.js             # Punto de entrada
@@ -80,71 +65,79 @@ src/
 │   ├── status.routes.js        # Rutas para estado del sistema
 │   └── template.routes.js      # Rutas para plantillas
 │
-├── utils/                # Utilidades y funciones auxiliares
-│   ├── errorResponse.js        # Formato estándar para errores
-│   └── logger.js               # Sistema de logging
+├── seeders/              # Scripts para poblar la base de datos
+│   ├── index.js                # Ejecutor principal de seeders
+│   └── templates.seeder.js     # Plantillas predeterminadas
 │
-└── seeders/              # Scripts para poblar la base de datos
-    ├── index.js                # Ejecutor principal de seeders
-    └── templates.seeder.js     # Plantillas predeterminadas
+├── utils/                # Utilidades y funciones auxiliares
+│   ├── kubernetes.service.js   # Manejar operaciones de Kubernetes
+│   └── podMonitor.service.js   # Monitorear el estado de los pods y actualizar la base de datos
+│
+└── utils/                # Utilidades y funciones auxiliares
+    ├── errorResponse.js        # Formato estándar para errores
+    └── logger.js               # Sistema de logging
+
 ```
 
 ## API Endpoints
 
-### Rutas Públicas
+### Rutas Públicas `src/app.js`
 
-- GET `/api/health` - Verificar estado del servidor
-- GET `/api/status/public` - Verificar estado público de la API
+- ✅ GET `/api/health` - Verificar estado del servidor
 
-### Autenticación
+### Rutas de status publicas - `src/routes/status.routes.js`
 
-- POST `/api/auth/google` - Iniciar sesión con Google OAuth
-- POST `/api/auth/mock-login` - Iniciar sesión simulada (solo en desarrollo)
-- GET `/api/auth/google/callback` - Callback para OAuth de Google
-- POST `/api/auth/logout` - Cerrar sesión
-- GET `/api/auth/verify` - Verificar token JWT
-- GET `/api/auth/me` - Obtener información del usuario actual
+- ✅ GET `/api/status/public` - Verificar estado público de la API
 
-### Administración de Usuarios (Admin)
+### Rutas de status - `src/routes/status.routes.js`
 
-- GET `/api/auth/users` - Obtener lista de usuarios
-- POST `/api/auth/users/balance` - Actualizar saldo de usuario
+- ✅ `GET /api/status` - Estado del sistema
+- ✅ `GET /api/status/pricing` - Configuración de precios
+- ✅ `POST /api/status/calculate-cost` - Calcular costo
 
-### Gestión de Pods
+### Autenticación - `src/routes/auth.routes.js`
 
-- GET `/api/pods` - Listar pods del usuario
-- POST `/api/pods` - Crear nuevo pod
-- GET `/api/pods/:id` - Obtener detalles de un pod
-- DELETE `/api/pods/:id` - Eliminar un pod
-- POST `/api/pods/:id/start` - Iniciar un pod detenido
-- POST `/api/pods/:id/stop` - Detener un pod en ejecución
-- GET `/api/pods/:id/logs` - Obtener logs de un pod
+- ✅ POST `/api/auth/google` - Iniciar sesión con Google OAuth
+- ✅ POST `/api/auth/mock-login` - Iniciar sesión simulada (solo en desarrollo)
+- ✅ GET `/api/auth/google/callback` - Callback para OAuth de Google
+- ✅ POST `/api/auth/logout` - Cerrar sesión
+- ✅ GET `/api/auth/verify` - Verificar token JWT
+- ✅ GET `/api/auth/me` - Obtener información del usuario actual
 
-### Gestión de Plantillas
+### Administración de Usuarios (Admin) - `src/routes/auth.routes.js`
 
-- GET `/api/templates` - Listar todas las plantillas disponibles
-- GET `/api/templates/summary` - Obtener resumen de plantillas (para dashboard)
-- GET `/api/templates/:id` - Obtener detalles de una plantilla específica
-- POST `/api/templates` - Crear nueva plantilla (solo administradores)
-- PUT `/api/templates/:id` - Actualizar plantilla existente (creador o admin)
-- DELETE `/api/templates/:id` - Eliminar plantilla (creador o admin)
+- ✅ GET `/api/auth/users` - Obtener lista de usuarios
+- ✅ POST `/api/auth/users/balance` - Actualizar saldo de usuario
 
-### Estado del Sistema
+### Gestión de Pods `src\routes\pod.routes.js`
 
-- GET `/api/status` - Obtener métricas y estado del sistema (requiere autenticación)
+- ✅ `GET /api/pods` - Obtener pods del usuario actual
+- ✅ `POST /api/pods` - Crear nuevo pod
+- ✅ `GET /api/pods/admin?userEmail=email` - Admin buscar pods por usuario  
+- ✅ `GET /api/pods/:podId/connections` - Información de conexiones
+- ✅ `GET /api/pods/:podId/logs` - Logs del pod
+- ✅ `POST /api/pods/:podId/start` - Iniciar pod
+- ✅ `POST /api/pods/:podId/stop` - Detener pod  
+- ✅ `DELETE /api/pods/:podId` - Eliminar pod
+
+### Gestión de Plantillas `src\routes\template.routes.js`
+
+- ✅ GET `/api/templates` - Listar todas las plantillas disponibles
+- ✅ POST `/api/templates` - Crear nueva plantilla (solo administradores)
+- ✅ GET `/api/templates/summary` - Obtener resumen de plantillas (para dashboard)
+- ✅ GET `/api/templates/:id` - Obtener detalles de una plantilla específica
+- ✅ PUT `/api/templates/:id` - Actualizar plantilla existente (creador o admin)
+- ✅ DELETE `/api/templates/:id` - Eliminar plantilla (creador o admin)
 
 ## Cambios Pendientes por Implementar
 
 1. **Integración con Kubernetes**:
-   - Implementar la lógica para desplegar pods en un clúster de Kubernetes
-   - Configurar volúmenes persistentes para el directorio `/workspace`
-   - Implementar la creación dinámica de subdominios para los pods
+   - Mejorar la lógica para desplegar pods en un clúster de Kubernetes
    - Integrar el uso de plantillas en el proceso de despliegue de pods
 
 2. **Gestión de Plantillas** ✅ **IMPLEMENTADO**:
    - ✅ Crear modelos y rutas para gestionar templates
    - ✅ Implementar la API para crear, modificar y eliminar plantillas
-   - ✅ Sistema de validación para plantillas
    - ✅ Plantillas predeterminadas mediante seeders
 
 3. **Sistema de Pagos y Saldo**:
@@ -154,7 +147,7 @@ src/
 
 4. **Monitoreo en Tiempo Real**:
    - Mejorar WebSockets para transmitir métricas de uso de recursos
-   - Implementar sistema para obtener estadísticas de uso de CPU, memoria y GPU
+   - Implementar sistema para obtener estadísticas de uso de CPU, memoria, GPU y espacio de discos
 
 5. **Seguridad**:
    - Implementar rate limiting para prevenir abusos

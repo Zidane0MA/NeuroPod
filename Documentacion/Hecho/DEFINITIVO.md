@@ -422,7 +422,7 @@ const PodSchema = new mongoose.Schema({
     type: Number, 
     required: true, 
     min: 1, 
-    max: 50 
+    max: 100 
   },
   volumeDiskSize: { 
     type: Number, 
@@ -681,8 +681,8 @@ async function validatePodPayload(payload, currentUser) {
   if (!payload.deploymentType) errors.push("Tipo de despliegue requerido");
   if (!payload.ports) errors.push("Puertos son requeridos");
   
-  if (payload.containerDiskSize < 1 || payload.containerDiskSize > 50) {
-    errors.push("Tamaño de disco de contenedor debe estar entre 1 y 50 GB");
+  if (payload.containerDiskSize < 1 || payload.containerDiskSize > 100) {
+    errors.push("Tamaño de disco de contenedor debe estar entre 1 y 100 GB");
   }
   
   if (payload.volumeDiskSize < 1 || payload.volumeDiskSize > 150) {

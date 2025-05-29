@@ -46,7 +46,7 @@ const TemplateSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 5,
-    max: 50,
+    max: 100,
     default: 10
   },
   volumeDiskSize: {

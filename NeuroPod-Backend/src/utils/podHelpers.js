@@ -96,7 +96,6 @@ function validatePorts(ports) {
 function calculateEstimatedCost(config) {
   const gpuPrices = {
     'rtx-4050': parseFloat(process.env.GPU_RTX4050_PRICE) || 0.5,
-    'rtx-4070': parseFloat(process.env.GPU_RTX4070_PRICE) || 1.0,
     'rtx-4080': parseFloat(process.env.GPU_RTX4080_PRICE) || 1.5,
     'rtx-4090': parseFloat(process.env.GPU_RTX4090_PRICE) || 2.5
   };
@@ -173,8 +172,8 @@ function validateResources(resources) {
     errors.push('GPU no válida');
   }
   
-  if (!resources.containerDiskSize || resources.containerDiskSize < 1 || resources.containerDiskSize > 50) {
-    errors.push('Tamaño de disco de contenedor debe estar entre 1 y 50 GB');
+  if (!resources.containerDiskSize || resources.containerDiskSize < 1 || resources.containerDiskSize > 100) {
+    errors.push('Tamaño de disco de contenedor debe estar entre 1 y 100 GB');
   }
   
   if (!resources.volumeDiskSize || resources.volumeDiskSize < 1 || resources.volumeDiskSize > 150) {

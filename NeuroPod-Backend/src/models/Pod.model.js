@@ -164,7 +164,7 @@ const PodSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 1,
-    max: 50
+    max: 100
   },
   volumeDiskSize: {
     type: Number,
@@ -273,7 +273,6 @@ PodSchema.virtual('costPerHour').get(function() {
   // Precios configurables (estos deberían venir de configuración)
   const gpuPricing = {
     'rtx-4050': parseFloat(process.env.GPU_RTX4050_PRICE) || 0.50,
-    'rtx-4070': parseFloat(process.env.GPU_RTX4070_PRICE) || 1.00,
     'rtx-4080': parseFloat(process.env.GPU_RTX4080_PRICE) || 1.50,
     'rtx-4090': parseFloat(process.env.GPU_RTX4090_PRICE) || 2.50
   };

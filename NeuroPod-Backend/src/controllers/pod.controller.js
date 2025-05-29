@@ -574,8 +574,8 @@ async function validatePodPayload(payload, currentUser) {
   if (!payload.deploymentType) errors.push("Tipo de despliegue requerido");
   if (!payload.ports) errors.push("Puertos son requeridos");
   
-  if (payload.containerDiskSize < 1 || payload.containerDiskSize > 50) {
-    errors.push("Tamaño de disco de contenedor debe estar entre 1 y 50 GB");
+  if (payload.containerDiskSize < 1 || payload.containerDiskSize > 100) {
+    errors.push("Tamaño de disco de contenedor debe estar entre 1 y 100 GB");
   }
   
   if (payload.volumeDiskSize < 1 || payload.volumeDiskSize > 150) {
@@ -735,7 +735,6 @@ function calculatePodCost(podConfig) {
   // Obtener precios desde variables de entorno o usar valores por defecto
   const gpuCosts = {
     'rtx-4050': parseFloat(process.env.GPU_RTX4050_PRICE) || 0.5,
-    'rtx-4070': parseFloat(process.env.GPU_RTX4070_PRICE) || 1.0,
     'rtx-4080': parseFloat(process.env.GPU_RTX4080_PRICE) || 1.5,
     'rtx-4090': parseFloat(process.env.GPU_RTX4090_PRICE) || 2.5
   };

@@ -8,7 +8,7 @@
 - **Template.model.js**
   - Modelo de datos completo para plantillas con validación:
   - Estructura de puertos HTTP y TCP con nombres de servicio
-  - Límites de recursos (Container Disk: 5-50GB, Volume Disk: 10-150GB)
+  - Límites de recursos (Container Disk: 5-100GB, Volume Disk: 10-150GB)
   - Rutas de volumen personalizables
   - Descripción en formato Markdown
   - Validación de puertos duplicados
@@ -51,7 +51,7 @@
 
 - **Actualizaciones en PodDeploy**:
   - Integración completa del selector de plantillas
-  - Límites de disco actualizados (Container: 50GB, Volume: 150GB)
+  - Límites de disco actualizados (Container: 100GB, Volume: 150GB)
   - Auto-completado con configuración de plantilla
   - Cambio de "Jupyter Notebook" a "Jupyter Lab"
   - Validación mejorada de formularios

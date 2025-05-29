@@ -192,16 +192,13 @@ import ProtectedRoute from "./components/ProtectedRoute";
 - **Falta**:
   - Cambio de estructura del formato de manifiestos de pods en el backend, se tiene el nuevo formato en MANIFIESTOS_FOMATOS.md
   - Tener en cuenta los cambios anteriores y verificar si el frontend los soporta, en caso contrario actualizar el codigo.
-  - En el frontend se cargan ejemplos de pods llamados podslegacy, se necesita reducir su numero a 2 y actualizar el formato de podslegacy, esto con el fin de eliminar las parte de codigo encargardas de su conversion a un formato accesible. cambiar el nombre a uno mas enfocado a ser una muestra.
-  - Cambio en el backend, se tienen variables de precios de los costes de las GPU (exceden las 3 requeridas)
-  - Cambiar el limite de Container Disk (máximo 100 GB)
+  - En el frontend se cargan ejemplos de pods llamados podslegacy, se necesita reducir su numero a 2 y actualizar el formato de podslegacy, esto con el fin de eliminar las parte de codigo encargardas de su conversion a un formato accesible. cambiar el nombre a uno mas enfocado a ser una muestra y actualizarlo de tal forma que se puedan eliminar facilmente cuando se deje de usar.
 - **Diseño**: Mantener diseño UI, pero arreglar problemas como:
   - En la seccion Configuracion del Pod, hacer que la seccion, puertos y la casilla jupyter notebook, se muevan debajo de la seccion de discos
-  - Cambiar los limites del los discos: Container Disk (máximo 100 GB)
   - Despues de seleccionar un template, no se abre el modal correspondiente al markdown
   - Despues de seleccionar un template, la barra de los discos no se actualiza (visual) a la informacion del template
 - **Selecciona una GPU**:
-  - Que los precios de las GPUs se obtengan desde el backend y que en `/admin/settings` en la seccion precios se pueda cambiar los precios de las GPUs. Solo se planean tener 3 GPUS: RTX 4050, RTX 4080 y RTX 4090
+  - Que los precios de las GPUs se obtengan desde el backend de momento como variables de entorno y que en `/admin/settings` en la seccion precios se pueda cambiar los precios de las GPUs. Solo se planean tener 3 GPUS: RTX 4050, RTX 4080 y RTX 4090
 - **Configuración de Pod**:
   - Nombre del pod (Unico en los pods del cliente, no usar solo esto para indentificar o crear los pods a nivel global)
   - Tipo de despliegue:

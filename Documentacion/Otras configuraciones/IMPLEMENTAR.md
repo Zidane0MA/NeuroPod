@@ -21,7 +21,7 @@
 - **Correcciones de UI**:
   - Ajustar sección GPU para vista angosta
   - Reorganizar sección de puertos y Jupyter debajo de discos
-  - Actualizar limitadores: Container Disk (máx 50 GB), Volume Disk (máx 150 GB)
+  - Actualizar limitadores: Container Disk (máx 100 GB), Volume Disk (máx 150 GB)
 - **Configuración de despliegue**:
   - Selección de GPU con precios dinámicos desde backend
   - Opciones de despliegue: Template o Imagen Docker

@@ -1,19 +1,22 @@
 # 🚀 Estado Actual del Backend de NeuroPod
 
-## ✅ **COMPLETADO** - Implementación del Backend
+## Implementación del Backend
+
+>**Estado:** ✅ **COMPLETADO** - ❌ **CORREGIR** - ⭕ **COMPLETAR** - 🔘 **VERIFICAR**
+
 
 ### 1. **Controlador de Pods** - `src/controllers/pod.controller.js`
 - ✅ `getPods()` - Obtener pods del usuario (admin puede buscar por email)
 - ✅ `getPodConnections()` - Obtener información de conexiones de un pod
-- ✅ `createPod()` - Crear nuevo pod con validaciones completas
-- ✅ `startPod()` - Iniciar pod detenido
-- ✅ `stopPod()` - Detener pod en ejecución  
-- ✅ `deletePod()` - Eliminar pod completamente
-- ✅ `getPodLogs()` - Obtener logs del pod desde Kubernetes
-- ✅ Funciones auxiliares de validación y procesamiento
+- ❌ `createPod()` - Crear nuevo pod con validaciones completas
+- 🔘 `startPod()` - Iniciar pod detenido
+- 🔘 `stopPod()` - Detener pod en ejecución  
+- 🔘 `deletePod()` - Eliminar pod completamente
+- ❌ `getPodLogs()` - Obtener logs del pod desde Kubernetes
+- 🔘 Funciones auxiliares de validación y procesamiento
 
 ### 2. **Controlador de Status** - `src/controllers/status.controller.js`
-- ✅ `getSystemStatus()` - Estado del sistema con estadísticas
+- ⭕ `getSystemStatus()` - Estado del sistema con estadísticas
 - ✅ `getPricing()` - Configuración de precios dinámicos
 - ✅ `calculateCost()` - Calcular costo de configuración
 
@@ -212,7 +215,6 @@ src/
 ```bash
 # GPU Pricing (nuevas)
 GPU_RTX4050_PRICE=0.50
-GPU_RTX4070_PRICE=1.00  
 GPU_RTX4080_PRICE=1.50
 GPU_RTX4090_PRICE=2.50
 

@@ -61,16 +61,6 @@ exports.getPricing = async (req, res) => {
             performance: 'Entry Level'
           }
         },
-        'rtx-4070': {
-          name: 'RTX 4070',
-          price: parseFloat(process.env.GPU_RTX4070_PRICE) || 1.00,
-          available: true,
-          specs: {
-            memory: '12GB GDDR6X',
-            cores: '5888 CUDA',
-            performance: 'High Performance'
-          }
-        },
         'rtx-4080': {
           name: 'RTX 4080',
           price: parseFloat(process.env.GPU_RTX4080_PRICE) || 1.50,
@@ -107,7 +97,7 @@ exports.getPricing = async (req, res) => {
         }
       },
       limits: {
-        containerDiskMax: 50, // GB
+        containerDiskMax: 100, // GB
         volumeDiskMax: 150,   // GB
         portsMax: 10
       }
@@ -140,7 +130,6 @@ exports.calculateCost = async (req, res) => {
     
     const gpuPrices = {
       'rtx-4050': parseFloat(process.env.GPU_RTX4050_PRICE) || 0.50,
-      'rtx-4070': parseFloat(process.env.GPU_RTX4070_PRICE) || 1.00,
       'rtx-4080': parseFloat(process.env.GPU_RTX4080_PRICE) || 1.50,
       'rtx-4090': parseFloat(process.env.GPU_RTX4090_PRICE) || 2.50
     };

@@ -362,7 +362,7 @@ const AdminTemplates = () => {
                   <Label>Container Disk Size: {form.containerDiskSize} GB</Label>
                   <Slider 
                     min={5} 
-                    max={50} 
+                    max={100} 
                     step={5} 
                     value={[form.containerDiskSize]} 
                     onValueChange={val => handleSliderChange("containerDiskSize", val[0])} 
@@ -373,7 +373,7 @@ const AdminTemplates = () => {
                   <Slider 
                     min={10} 
                     max={150} 
-                    step={10} 
+                    step={5} 
                     value={[form.volumeDiskSize]} 
                     onValueChange={val => handleSliderChange("volumeDiskSize", val[0])} 
                   />

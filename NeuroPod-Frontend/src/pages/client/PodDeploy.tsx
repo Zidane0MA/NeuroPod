@@ -399,7 +399,7 @@ const ClientPodDeploy = () => {
                       </div>
                       <Slider
                         defaultValue={[containerDiskSize]}
-                        max={50}
+                        max={100}
                         min={5}
                         step={5}
                         onValueChange={(val) => setContainerDiskSize(val[0])}
@@ -419,7 +419,7 @@ const ClientPodDeploy = () => {
                         defaultValue={[volumeDiskSize]}
                         max={150}
                         min={10}
-                        step={10}
+                        step={5}
                         onValueChange={(val) => setVolumeDiskSize(val[0])}
                       />
                     </div>

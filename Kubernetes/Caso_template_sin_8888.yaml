@@ -1,0 +1,132 @@
+# =============================================================================
+# CASO 3: Imagen SIN Python (ej: Ubuntu base, Alpine)
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu-jupyter-pod
+  labels:
+    app: ubuntu-jupyter
+    user: test-user
+spec:
+  restartPolicy: Never
+  containers:
+  - name: ubuntu-jupyter
+    image: ubuntu:22.04
+    ports:
+    - containerPort: 8888
+      name: jupyter
+    - containerPort: 3000
+      name: webapp
+    volumeMounts:
+    - name: workspace
+      mountPath: /workspace
+    # Sin Python, instalación completa
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      # Actualizar sistema e instalar dependencias completas
+      apt-get update && apt-get install -y \
+        python3 \
+        python3-pip \
+        python3-venv \
+        nodejs \
+        npm \
+        curl \
+        wget \
+        git
+      
+      # Configurar workspace
+      mkdir -p /workspace/notebooks
+      cd /workspace
+      
+      # Instalar Jupyter Lab
+      pip3 install jupyterlab ipywidgets pandas numpy matplotlib
+      
+      # Iniciar Jupyter Lab
+      jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root &
+      
+      # Simular aplicación web adicional (Node.js)
+      echo 'const http = require("http"); http.createServer((req,res) => { res.writeHead(200, {"Content-Type": "text/html"}); res.end("<h1>Custom Web App</h1>"); }).listen(3000, "0.0.0.0");' > app.js
+      node app.js &
+      
+      # Mantener contenedor vivo
+      wait
+  volumes:
+  - name: workspace
+    persistentVolumeClaim:
+      claimName: ubuntu-jupyter-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ubuntu-jupyter-pvc
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 30Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ubuntu-jupyter-service
+  labels:
+    app: ubuntu-jupyter
+    user: test-user
+spec:
+  selector:
+    app: ubuntu-jupyter
+    user: test-user
+  ports:
+  - name: jupyter
+    port: 8888
+    targetPort: 8888
+    protocol: TCP
+  - name: webapp
+    port: 3000
+    targetPort: 3000
+    protocol: TCP
+  type: ClusterIP
+---
+# Pattern: {app}-{user}-{port}.neuropod.online
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: neuropod-pattern-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - comfyui-usr123-8188.neuropod.online
+    - jupyter-usr123-8888.neuropod.online
+    secretName: neuropod-tls
+  rules:
+  # ComfyUI service
+  - host: comfyui-usr123-8188.neuropod.online
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: comfyui-jupyter-service
+            port:
+              number: 8188
+  # Jupyter service
+  - host: jupyter-usr123-8888.neuropod.online
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: comfyui-jupyter-service
+            port:
+              number: 8888

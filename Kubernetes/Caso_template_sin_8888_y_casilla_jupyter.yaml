@@ -1,0 +1,216 @@
+# =============================================================================
+# EJEMPLO: Pod con captura automática de token de Jupyter
+# CASO: Template sin puerto 8888 y casilla Jupyter Lab
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jupyter-token-capture
+  labels:
+    app: jupyter-token
+    user: test-user
+spec:
+  restartPolicy: Never
+  containers:
+  - name: main-app
+    image: zhangp365/comfyui  # Imagen sin Jupyter que viene del template
+    ports:
+    - containerPort: 8188     # Puerto de servicio creado al seleccionar template
+      name: comfyui           # Nombre de servicio obtenido del template seleccionado
+    - containerPort: 8888     # Puerto de Jupyter Lab creado al seleccionar casilla Jupyter Lab
+      name: jupyter           # Nombre de servicio dado al seleccionar la casilla Jupyter Lab
+    resources:
+      limits:
+        nvidia.com/gpu: "1"
+        memory: 8Gi
+        cpu: 4
+      requests:
+        nvidia.com/gpu: "1"
+        memory: 4Gi
+        cpu: 2
+    volumeMounts:
+    - name: workspace
+      mountPath: /workspace
+    - name: jupyter-config
+      mountPath: /root/.jupyter
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      # Configurar workspace
+      mkdir -p /workspace/{models,output,input,notebooks}
+      ln -sf /workspace/models /app/ComfyUI/models
+      ln -sf /workspace/output /app/ComfyUI/output
+      ln -sf /workspace/input /app/ComfyUI/input
+      
+      # Instalar Jupyter Lab
+      pip install jupyterlab ipywidgets
+      
+      # MÉTODO 1: Generar token conocido
+      echo "Generando token conocido para Jupyter..."
+      JUPYTER_TOKEN="neuropod-$(openssl rand -hex 16)"
+      echo "Token generado: $JUPYTER_TOKEN"
+      
+      # Crear configuración de Jupyter con token fijo
+      mkdir -p /root/.jupyter
+      cat > /root/.jupyter/jupyter_lab_config.py << EOF
+      c.ServerApp.token = '$JUPYTER_TOKEN'
+      c.ServerApp.password = ''
+      c.ServerApp.open_browser = False
+      c.ServerApp.ip = '0.0.0.0'
+      c.ServerApp.port = 8888
+      c.ServerApp.allow_root = True
+      c.ServerApp.root_dir = '/workspace'
+      EOF
+      
+      # Escribir token a archivo para que el backend lo lea
+      echo "$JUPYTER_TOKEN" > /workspace/.jupyter_token
+      
+      # Iniciar Jupyter Lab con configuración
+      cd /workspace
+      jupyter lab &
+      JUPYTER_PID=$!
+      
+      # Esperar a que Jupyter inicie y verificar logs
+      sleep 5
+      echo "=== JUPYTER STARTUP LOGS ==="
+      jupyter server list || true
+      
+      # Iniciar ComfyUI
+      cd /app/ComfyUI && python main.py --listen 0.0.0.0 --port 8188 &
+      COMFYUI_PID=$!
+      
+      # Función para capturar token de logs (método alternativo)
+      capture_token_from_logs() {
+        echo "Buscando token en logs de Jupyter..."
+        timeout 30 bash -c '
+          while true; do
+            if jupyter server list 2>/dev/null | grep -o "token=[a-f0-9]*" | head -1 | cut -d= -f2 > /tmp/captured_token.txt; then
+              if [ -s /tmp/captured_token.txt ]; then
+                echo "Token capturado de logs: $(cat /tmp/captured_token.txt)"
+                cp /tmp/captured_token.txt /workspace/.jupyter_token_captured
+                break
+              fi
+            fi
+            sleep 2
+          done
+        '
+      }
+      
+      # Ejecutar captura en paralelo (backup)
+      capture_token_from_logs &
+      
+      # Mantener contenedor vivo
+      wait $JUPYTER_PID $COMFYUI_PID
+  volumes:
+  - name: workspace
+    persistentVolumeClaim:
+      claimName: jupyter-token-pvc
+  - name: jupyter-config
+    emptyDir: {}
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jupyter-token-pvc
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+
+# =============================================================================
+# CASO 2: Imagen CON Python pero SIN Jupyter (ej: ComfyUI)
+# =============================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: comfyui-jupyter-pod
+  labels:
+    app: comfyui-jupyter
+    user: test-user
+spec:
+  restartPolicy: Never
+  containers:
+  - name: comfyui-jupyter
+    image: zhangp365/comfyui
+    ports:
+    - containerPort: 8188
+      name: comfyui
+    - containerPort: 8888
+      name: jupyter
+    resources:
+      limits:
+        nvidia.com/gpu: "1"
+        memory: 8Gi
+        cpu: 4
+      requests:
+        nvidia.com/gpu: "1"
+        memory: 4Gi
+        cpu: 2
+    volumeMounts:
+    - name: workspace
+      mountPath: /workspace
+    # Python disponible, instalar Jupyter
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      # Configurar workspace
+      mkdir -p /workspace/{models,output,input,notebooks}
+      ln -sf /workspace/models /app/ComfyUI/models
+      ln -sf /workspace/output /app/ComfyUI/output
+      ln -sf /workspace/input /app/ComfyUI/input
+      
+      # Instalar Jupyter Lab (Python ya disponible)
+      pip install jupyterlab ipywidgets
+      
+      # Iniciar Jupyter Lab
+      cd /workspace
+      jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root &
+      
+      # Iniciar ComfyUI
+      cd /app/ComfyUI && python main.py --listen 0.0.0.0 --port 8188 &
+      
+      # Mantener contenedor vivo
+      wait
+  volumes:
+  - name: workspace
+    persistentVolumeClaim:
+      claimName: comfyui-jupyter-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: comfyui-jupyter-pvc
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: comfyui-jupyter-service
+  labels:
+    app: comfyui-jupyter
+    user: test-user
+spec:
+  selector:
+    app: comfyui-jupyter
+    user: test-user
+  ports:
+  - name: comfyui
+    port: 8188
+    targetPort: 8188
+    protocol: TCP
+  - name: jupyter
+    port: 8888
+    targetPort: 8888
+    protocol: TCP
+  type: ClusterIP

@@ -4,9 +4,9 @@ setlocal enabledelayedexpansion
 REM ===============================
 REM Verificación de permisos
 REM ===============================
->nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe %SYSTEMROOT%\system32\config\system"
-if '%errorlevel%' NEQ '0' (
-    echo Asegúrate de ejecutar este script como ADMINISTRADOR.
+>nul 2>&1 net session
+if %errorlevel% NEQ 0 (
+    echo Asegurate de ejecutar este script como ADMINISTRADOR.
     pause
     exit /b
 )
@@ -34,8 +34,8 @@ REM ===============================
 REM Iniciar Minikube
 REM ===============================
 echo Iniciando Minikube...
-minikube start --driver=docker --container-runtime=docker --gpus=all --memory=14000mb --cpus=8 --addons=ingress,storage-provisioner,default-storageclass
-timeout /t 30 /nobreak >nul
+start "Iniciar minikube" cmd /k minikube start --driver=docker --container-runtime=docker --gpus=all --memory=14000mb --cpus=8 --addons=ingress,storage-provisioner,default-storageclass
+timeout /t 40 /nobreak >nul
 echo Esperando a que Minikube esté listo...
 
 REM ===============================
@@ -46,7 +46,7 @@ start "Minikube Tunnel" cmd /k minikube tunnel
 REM ===============================
 REM Iniciar MongoDB (ajusta versión)
 REM ===============================
-start "MongoDB" cmd /k "C:\Program Files\MongoDB\Server\6.0\bin\mongod.exe" --dbpath="C:\data\db"
+start "MongoDB" cmd /k "C:\Program Files\MongoDB\Server\8.0\bin\mongod.exe" --dbpath="C:\data\db"
 
 REM ===============================
 REM Iniciar Backend (ruta relativa)

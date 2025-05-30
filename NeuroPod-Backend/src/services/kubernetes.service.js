@@ -11,17 +11,16 @@ class KubernetesService {
     this.kc = new k8s.KubeConfig();
     
     try {
-      // Intentar cargar configuración de Kubernetes
+      // En producción: siempre fuera del cluster
       if (process.env.NODE_ENV === 'production') {
-        this.kc.loadFromCluster(); // Para pods ejecutándose dentro del cluster
+        this.kc.loadFromDefault(); // Siempre fuera del cluster
+        this.k8sApi = this.kc.makeApiClient(k8s.CoreV1Api);
+        this.k8sNetworkingApi = this.kc.makeApiClient(k8s.NetworkingV1Api);
+        console.log('✅ Kubernetes client initialized successfully (production, fuera del cluster)');
       } else {
-        this.kc.loadFromDefault(); // Para desarrollo local con minikube
+        // En desarrollo: solo simulación
+        throw new Error('Modo simulación forzado en desarrollo');
       }
-      
-      this.k8sApi = this.kc.makeApiClient(k8s.CoreV1Api);
-      this.k8sNetworkingApi = this.kc.makeApiClient(k8s.NetworkingV1Api);
-      
-      console.log('✅ Kubernetes client initialized successfully');
     } catch (error) {
       console.warn('⚠️  Kubernetes not available, running in simulation mode:', error.message);
       this.k8sApi = null;

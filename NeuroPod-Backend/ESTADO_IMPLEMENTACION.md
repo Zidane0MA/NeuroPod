@@ -2,7 +2,7 @@
 
 ## Ultimas Implementaciones del Backend
 
->**Estado:** ✅ **COMPLETADO** <- 🔘 **REVISAR** <- ⭕ **COMPLETAR** <- 🔘 **REVISAR** <- ❌ **CORREGIR** 
+>**Estado actual:** ✅ **COMPLETADO** <- (✅? - 🔘) **REVISAR** <- ⭕ **COMPLETAR** <- 🔘 **REVISAR** <- ❌ **CORREGIR** 
 
 ### 1. **Controlador de Pods** - `src/controllers/pod.controller.js`
 - 🔘 `getPods()` - Obtener pods del usuario (admin puede buscar por email)
@@ -79,10 +79,10 @@
 
 ### 9. **Servidor Principal** - `src/server.js`
 - ✅? Integración completa con WebSockets
-- ✅ Inicialización automática del servicio de monitoreo
+- ✅? Inicialización automática del servicio de monitoreo
 - ✅ Cierre gracioso con limpieza de recursos
-- ✅ Manejo de errores no capturados
-- ✅ Logs detallados de estado de servicios
+- ✅? Manejo de errores no capturados
+- ✅? Logs detallados de estado de servicios
 
 ### 10. **Modelo Pod** - `src/models/Pod.model.js`
 - ✅ Esquema completo con servicios HTTP/TCP
@@ -107,17 +107,17 @@
 
 ### **Integración con Kubernetes:**
 - ✅? Creación automática de Pods, Services e Ingress
-- ✅ Configuración NGINX Ingress optimizada para WebSockets
-- ✅ Soporte para GPUs con tolerations
-- ✅ PVC automático por usuario con persistencia
-- ✅ Limpieza automática de recursos huérfanos
+- ✅? Configuración NGINX Ingress optimizada para WebSockets
+- ✅? Soporte para GPUs con tolerations
+- ✅? PVC automático por usuario con persistencia
+- ✅? Limpieza automática de recursos huérfanos
 
 ### **Monitoreo en Tiempo Real:**
-- ✅ WebSockets para actualizaciones instantáneas
-- ✅ Métricas de CPU, memoria y GPU (simuladas/reales)
-- ✅ Estados: creating, running, stopped, error
+- ✅? WebSockets para actualizaciones instantáneas
+- ✅? Métricas de CPU, memoria y GPU (simuladas/reales)
+- ✅? Estados: creating, running, stopped, error
 - ✅ Notificaciones automáticas de cambios
-- ✅ Logs en tiempo real desde Kubernetes
+- ✅? Logs en tiempo real desde Kubernetes
 
 ### **Sistema de Precios Dinámico:**
 - ✅ Precios configurables por GPU desde variables de entorno
@@ -129,28 +129,28 @@
 
 ## 🎯 **PRÓXIMAS TAREAS PARA COMPLETAR EL SISTEMA**
 
+>**Estado actual:** ✅ **COMPLETADO** <- 🔄 **VERIFICAR/CREAR/HACER/CAMBIAR**
+
 ### **1. Frontend - Páginas de Pods** 
 - 🔄 Adaptar `/admin/pods` y `/client/pods` para usar nuevas APIs
+- 🔄 Borrar rastro del anterior sistema de pods (podslegacy), actualizarlo
 - 🔄 Implementar tabla con estados, métricas y acciones
-- 🔄 Modal de conexiones con servicios HTTP/TCP
-- 🔄 Modal de logs con descarga
+- ✅? Modal de conexiones con servicios HTTP/TCP (No abre)
 - 🔄 Integración con WebSockets para actualizaciones en tiempo real
 
 ### **2. Frontend - Páginas de Deploy**
-- 🔄 Conectar con API de templates y precios dinámicos
-- 🔄 Implementar cálculo de costos en tiempo real
-- 🔄 Validación de formularios con nuevos límites
-- 🔄 Campo "Asignar a Usuario" para admins
+- 🔄 Conectar con API de templates (HECHO) y precios dinámicos
+- 🔄 Implementar cálculo de costos en tiempo real de acuerdo al backend
 
 ### **3. Sistema de Templates**
 - 🔄 Verificar que el controlador de templates funcione correctamente
-- 🔄 Conectar frontend con backend para CRUD de templates
-- 🔄 Validación de puertos y configuraciones
+- ✅ Conectar frontend con backend para CRUD de templates
+- ✅ Validación de puertos y configuraciones
 
 ### **4. Testing y Configuración**
-- 🔄 Probar conexión con Minikube local
-- 🔄 Configurar variables de entorno para precios
-- 🔄 Verificar funcionamiento de Cloudflare Tunnel
+- ✅ Probar conexión con Minikube local
+- ✅ Configurar variables de entorno para precios
+- ✅ Verificar funcionamiento de Cloudflare Tunnel
 - 🔄 Testing completo del flujo de creación de pods
 
 ### **5. Optimizaciones**
@@ -161,7 +161,7 @@
 
 ---
 
-## 📁 **ESTRUCTURA DE ARCHIVOS ACTUALIZADA**
+## 📁 **ULTIMOS ARCHIVOS ACTUALIZADOS POR CLAUDE**
 
 ```
 src/
@@ -220,11 +220,6 @@ GPU_RTX4090_PRICE=2.50
 # Storage Pricing (nuevas)
 CONTAINER_DISK_PRICE=0.05
 VOLUME_DISK_PRICE=0.10
-
-# Kubernetes (opcionales)
-STORAGE_CLASS=standard
-INGRESS_CLASS=nginx
-NAMESPACE=default
 ```
 
 ---

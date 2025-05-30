@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from "react";
+import ReactMarkdown from "react-markdown";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { podService, PodCreateParams } from "@/services/pod.service";
+import { podService } from "@/services/pod.service";
+import { PodCreateParams } from "@/types/pod";
 import { Template } from "@/types/template";
 
 interface GpuOption {
@@ -67,14 +69,16 @@ const AdminPodDeploy = () => {
   const [podName, setPodName] = useState("");
   const [ports, setPorts] = useState("8888");
   const [template, setTemplate] = useState("ubuntu");
-  const [deploymentType, setDeploymentType] = useState("template");
+  const [deploymentType, setDeploymentType] = useState<'template' | 'docker'>("template");
   const [dockerImage, setDockerImage] = useState("");
   const [userAssign, setUserAssign] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [availableTemplates, setAvailableTemplates] = useState<Template[]>([]);
+  const [showDescription, setShowDescription] = useState(false);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const markdownContent = selectedTemplate?.description || "Sin descripción";
   const navigate = useNavigate();
   const { user } = useAuth();
   
@@ -154,10 +158,6 @@ const AdminPodDeploy = () => {
       const response = await podService.createPod(params);
       
       toast.success(`Pod ${podName} desplegado correctamente${userAssign ? ` para ${userAssign}` : ''}`);
-      
-      if (response.url) {
-        toast.info(`Pod accesible en: ${response.url}`);
-      }
       
       navigate("/admin/pods");
     } catch (error: any) {
@@ -291,7 +291,7 @@ const AdminPodDeploy = () => {
                       <Label>Tipo de Despliegue</Label>
                       <Select 
                         value={deploymentType} 
-                        onValueChange={setDeploymentType}
+                        onValueChange={(value) => setDeploymentType(value as 'template' | 'docker')}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecciona tipo de despliegue" />
@@ -321,9 +321,7 @@ const AdminPodDeploy = () => {
                                 variant="outline" 
                                 size="icon"
                                 type="button"
-                                onClick={() => {
-                                  // TODO: Show template description
-                                }}
+                                onClick={() => setShowDescription(true)}
                               >
                                 <HelpCircle className="h-4 w-4" />
                               </Button>
@@ -354,35 +352,6 @@ const AdminPodDeploy = () => {
                         </p>
                       </div>
                     )}
-                  
-                    <div className="space-y-2 lg:col-span-2 pt-4 lg:pt-0">
-                      <Label htmlFor="ports">Puertos HTTP expuestos (separados por comas)</Label>
-                      <Input 
-                        id="ports" 
-                        value={ports} 
-                        onChange={(e) => setPorts(e.target.value)} 
-                        placeholder={deploymentType === "docker" ? "8888" : "puertos del template"}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {deploymentType === "template" 
-                          ? "Los puertos se cargan automáticamente desde el template seleccionado" 
-                          : "Especifica los puertos HTTP que necesitas exponer"}
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2 lg:col-span-2 pt-2">
-                      <Label htmlFor="tcpPorts">Puertos TCP expuestos (separados por comas) - Decorativo</Label>
-                      <Input 
-                        id="tcpPorts" 
-                        value="" 
-                        onChange={() => {}} 
-                        placeholder="22, 3306"
-                        disabled
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Funcionalidad no implementada. Solo para visualización.
-                      </p>
-                    </div>
                     
                     <div className="flex items-center space-x-2 pt-2 lg:col-span-2">
                       <Checkbox 
@@ -404,7 +373,7 @@ const AdminPodDeploy = () => {
                     </div>
                   </div>
                   
-                  <div className="space-y-6 lg:order-2">
+                  <div className="space-y-6 lg:order-2">                  
                     <div className="space-y-4">
                       <Label className="flex items-center gap-2">
                         <HardDrive className="h-4 w-4" />
@@ -439,6 +408,35 @@ const AdminPodDeploy = () => {
                         step={5}
                         onValueChange={(val) => setVolumeDiskSize(val[0])}
                       />
+                    </div>
+
+                    {/* Secciones de puertos movidas aquí visualmente */}
+                    <div className="space-y-2 lg:col-span-2 pt-4 lg:pt-0">
+                      <Label htmlFor="ports">Puertos HTTP expuestos (separados por comas)</Label>
+                      <Input 
+                        id="ports" 
+                        value={ports} 
+                        onChange={(e) => setPorts(e.target.value)} 
+                        placeholder={deploymentType === "docker" ? "8888" : "puertos del template"}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {deploymentType === "template" 
+                          ? "Los puertos se cargan automáticamente desde el template seleccionado" 
+                          : "Especifica los puertos HTTP que necesitas exponer"}
+                      </p>
+                    </div>
+                    <div className="space-y-2 lg:col-span-2 pt-2">
+                      <Label htmlFor="tcpPorts">Puertos TCP expuestos (separados por comas) - Decorativo</Label>
+                      <Input 
+                        id="tcpPorts" 
+                        value="" 
+                        onChange={() => {}} 
+                        placeholder="22, 3306"
+                        disabled
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Funcionalidad no implementada. Solo para visualización.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -537,7 +535,19 @@ const AdminPodDeploy = () => {
           </form>
         </Form>
       )}
-      
+
+      {/* Template Description Modal */}
+      <Dialog open={showDescription} onOpenChange={setShowDescription}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Descripción del Template</DialogTitle>
+          </DialogHeader>
+          <div className="prose max-w-none no-scrollbar overflow-auto" style={{ maxHeight: 500 }}>
+            <ReactMarkdown>{markdownContent}</ReactMarkdown>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Template Selection Modal */}
       <Dialog open={showTemplateModal} onOpenChange={setShowTemplateModal}>
         <DialogContent className="max-w-3xl h-[80vh] max-h-[800px] flex flex-col">

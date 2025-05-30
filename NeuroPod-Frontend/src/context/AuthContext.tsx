@@ -70,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               toast({
                 title: "Modo sin conexión activado",
                 description: "Estás trabajando sin conexión al servidor.",
-                variant: "warning"
+                variant: "default"
               });
               setIsLoading(false);
               return;
@@ -219,7 +219,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     toast({
       title: "Modo sin conexión",
       description: `Sesión simulada para ${email}`,
-      variant: "warning"
+      variant: "default"
     });
   };
 

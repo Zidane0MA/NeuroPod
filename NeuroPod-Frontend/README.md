@@ -105,7 +105,7 @@ src/
 │  ├─ pod.ts                  # Tipos de datos de pods
 │  ├─ templates.ts            # Tipos de datos de templates (completo)
 │  └─ user.ts                 # Tipos de datos de usuario
-└─ utils/podUtils.ts          # Utilidades para pods (Convertir legacyPod a actual, eliminar rastros de legacypod)
+└─ utils/podUtils.ts          # Utilidades para pods (Convertir LegacyPod a actual, eliminar rastros de LegacyPod)
 
 ```
 
@@ -150,7 +150,6 @@ src/
 ### Pendientes de Implementar
 - ⏳ **Contexto de Saldo**: 
   - Mostrar saldo infinito para admin (incono) en su respectiva barra lateral 
-  - Mostrar saldo real para clientes (10€ iniciales)
   - Actualización en tiempo real al usar contenedores
 
 - ⏳ **Gestión de Pods**:
@@ -161,13 +160,11 @@ src/
 
 - ⏳ **Estadísticas**:
   - Gráficos de uso de recursos
-  - Historial de costos
   - Logs de actividad
 
 - ⏳ **Panel de Administración**:
   - Gestión de usuarios (asignar saldo, suspender)
   - Configuración de precios para distintos tipos de recursos
-  - Gestión de plantillas de contenedores
 
 ## Integración con Backend
 

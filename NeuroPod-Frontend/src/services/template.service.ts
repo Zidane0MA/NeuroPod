@@ -20,7 +20,7 @@ export const templateService = {
    */
   async createTemplate(template: CreateTemplateParams): Promise<Template> {
     try {
-      const response = await api.post("/templates", template);
+      const response = await api.post("/api/templates", template);
       // El backend retorna { message: ..., template: ... }
       return response.data.template || response.data;
     } catch (error) {
@@ -34,7 +34,7 @@ export const templateService = {
    */
   async updateTemplate(id: string, template: Partial<CreateTemplateParams>): Promise<Template> {
     try {
-      const response = await api.put(`/templates/${id}`, template);
+      const response = await api.put(`/api/templates/${id}`, template);
       // El backend retorna { message: ..., template: ... }
       return response.data.template || response.data;
     } catch (error) {
@@ -48,7 +48,7 @@ export const templateService = {
    */
   async deleteTemplate(id: string): Promise<void> {
     try {
-      await api.delete(`/templates/${id}`);
+      await api.delete(`/api/templates/${id}`);
     } catch (error) {
       console.error("Error deleting template:", error);
       throw error;
@@ -60,7 +60,7 @@ export const templateService = {
    */
   async getTemplateById(id: string): Promise<Template> {
     try {
-      const response = await api.get(`/templates/${id}`);
+      const response = await api.get(`/api/templates/${id}`);
       return response.data;
     } catch (error) {
       console.error("Error fetching template:", error);

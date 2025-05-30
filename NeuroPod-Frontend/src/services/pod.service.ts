@@ -42,11 +42,11 @@ export const podService = {
         const isAdmin = user.role === 'admin';
         
         // Retornar datos simulados según el rol
-        const simulatedPods: LegacyPod[] = [];
+        const LegacyPods: LegacyPod[] = [];
         
         if (isAdmin) {
           // Para administradores: pods propios y de usuarios
-          simulatedPods.push(
+          LegacyPods.push(
             {
               id: "pod-1",
               name: "ComfyUI-Admin",
@@ -78,7 +78,7 @@ export const podService = {
           );
         } else {
           // Para clientes: solo sus propios pods
-          simulatedPods.push(
+          LegacyPods.push(
             {
               id: "pod-1",
               name: "ComfyUI-1",
@@ -108,7 +108,7 @@ export const podService = {
           );
         }
         
-        return simulatedPods;
+        return LegacyPods;
       }
       
       throw error;
@@ -222,7 +222,7 @@ export const podService = {
         console.warn('Usando datos simulados de detalles de pod');
         
         // Crear un pod simulado para compatibilidad
-        const simulatedPod: Pod = {
+        const LegacyPod: Pod = {
           podId: podId,
           podName: "Pod-Simulado",
           userId: "user-123",
@@ -262,7 +262,7 @@ export const podService = {
         };
         
         return {
-          pod: simulatedPod,
+          pod: LegacyPod,
           details: {
             url: `https://pod-${podId}.neuropod.online`,
             subdomain: `pod-${podId}.neuropod.online`,

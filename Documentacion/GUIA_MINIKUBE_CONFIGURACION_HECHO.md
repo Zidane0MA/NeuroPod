@@ -331,37 +331,6 @@ data:
   # kubectl create secret tls neuropod-tls --key tls.key --cert tls.crt --dry-run=client -o yaml
   tls.crt: LS0tLS1CRUdJTi... # Base64 encoded certificate
   tls.key: LS0tLS1CRUdJTi... # Base64 encoded private key
-
----
-# ConfigMap para scripts de inicialización (helpers)
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: neuropod-scripts
-  namespace: default
-  labels:
-    app: neuropod
-    component: scripts
-data:
-  install-jupyter.sh: |
-    #!/bin/bash
-    # Script para instalar Jupyter Lab en contenedores que no lo tienen
-    echo "Instalando Jupyter Lab..."
-    pip install jupyterlab
-    echo "Jupyter Lab instalado correctamente"
-  
-  setup-workspace.sh: |
-    #!/bin/bash
-    # Script para configurar el workspace inicial
-    mkdir -p /workspace/notebooks
-    mkdir -p /workspace/data
-    mkdir -p /workspace/models
-    echo "Workspace configurado"
-    
-  health-check.sh: |
-    #!/bin/bash
-    # Script básico de health check
-    curl -f http://localhost:$1/health || exit 1
 ```
 Se guarda bajo el nombre neuropod-k8s.yaml y se aplica con:
 
@@ -444,20 +413,4 @@ kubectl logs -n ingress-nginx deployment/ingress-nginx-controller
                                       +------------->| Persistent Volume |
                                                      | (/workspace)      |
                                                      +-------------------+
-```
-
-## 📦 Ejemplo del PVC en formato ymal para Usuario
-
-```yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: comfyui-workspace-pvc
-spec:
-  accessModes:
-    - ReadWriteMany
-  storageClassName: standard
-  resources:
-    requests:
-      storage: 150Gi
 ```

@@ -33,7 +33,7 @@ class KubernetesService {
     return this.k8sApi !== null && this.k8sNetworkingApi !== null;
   }
 
-  // Crear PVC para el usuario si no existe
+  // Crear PVC para el usuario si no existe (CAMBIAR: EL PVC SE CREARA JUNTO AL POD Y NO SE REUTILIZARA EN OTROs PODS)
   async createOrVerifyUserPVC(userId, volumeDiskSize) {
     if (!this.isKubernetesAvailable()) {
       console.log('🔧 [SIMULATION] Creating PVC for user:', userId);

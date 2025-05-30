@@ -78,91 +78,6 @@
 
 ---
 
-## 🔒 **Validación en el Backend:**
-
-```javascript
-// Validación del payload en POST /api/pods
-async function validatePodPayload(payload, currentUser) {
-  const errors = [];
-
-  // ✅ Validaciones básicas
-  if (!payload.name) errors.push("Nombre es requerido");
-  if (!payload.gpu) errors.push("GPU es requerida");
-  if (!payload.deploymentType) errors.push("Tipo de despliegue requerido");
-
-  // ✅ Validación según tipo de despliegue
-  if (payload.deploymentType === "template" && !payload.template) {
-    errors.push("Template es requerido");
-  }
-  if (payload.deploymentType === "docker" && !payload.dockerImage) {
-    errors.push("Imagen Docker es requerida");
-  }
-
-  // 🔐 Validación de asignación de usuario
-  if (payload.assignToUser) {
-    // Solo admin puede asignar a otros usuarios
-    if (currentUser.role !== "admin") {
-      errors.push("Solo administradores pueden asignar pods a otros usuarios");
-    }
-    
-    // Verificar que el usuario destino existe
-    const targetUser = await User.findOne({ email: payload.assignToUser });
-    if (!targetUser) {
-      errors.push(`Usuario ${payload.assignToUser} no encontrado`);
-    }
-    
-    // Verificar que el usuario destino es cliente
-    if (targetUser && targetUser.role !== "client") {
-      errors.push("Solo se puede asignar pods a usuarios con rol 'client'");
-    }
-  }
-
-  return errors;
-}
-```
-
----
-
-## 🎯 **Lógica de Asignación en el Backend:**
-
-```javascript
-// Procesar la creación del pod
-async function createPod(payload, currentUser) {
-  // Determinar el usuario propietario del pod
-  let podOwner;
-  
-  if (payload.assignToUser && currentUser.role === "admin") {
-    // Admin está creando para un cliente
-    podOwner = await User.findOne({ email: payload.assignToUser });
-    console.log(`Admin ${currentUser.email} creando pod para ${podOwner.email}`);
-  } else {
-    // Usuario creando para sí mismo (cliente o admin)
-    podOwner = currentUser;
-    console.log(`Usuario ${currentUser.email} creando pod para sí mismo`);
-  }
-
-  // Validar saldo (solo para clientes)
-  if (podOwner.role === "client") {
-    const estimatedCost = calculatePodCost(payload);
-    if (podOwner.balance < estimatedCost) {
-      throw new Error(`Saldo insuficiente. Requerido: €${estimatedCost}, Disponible: €${podOwner.balance}`);
-    }
-  }
-
-  // Crear el pod asignado al usuario correcto
-  const pod = await Pod.create({
-    ...payload,
-    userId: podOwner._id,
-    createdBy: currentUser._id, // Quien realmente creó el pod
-    userHash: generateUserHash(podOwner._id)
-  });
-
-  return pod;
-}
-```
-
----
-
 ## 🖥️ **Diferencias en el Frontend:**
 
 ### **En AdminPodDeploy.tsx:**
@@ -274,7 +189,7 @@ const ClientPodDeploy = () => {
 ## 🔍 **Comportamiento en las Páginas de Pods:**
 
 ### **En /admin/pods:**
-```javascript
+```jsx
 // Admin puede ver:
 // 1. Sus propios pods (userId === admin_id)
 // 2. Pods de cualquier cliente al buscar por email
@@ -288,7 +203,7 @@ GET /api/pods?userEmail=cliente@email.com
 ```
 
 ### **En /client/pods:**
-```javascript  
+```jsx
 // Cliente solo ve:
 // - Pods donde userId === su propio ID
 // - No importa quién los creó (createdBy)

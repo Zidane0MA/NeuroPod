@@ -4,10 +4,10 @@ import { Play, StopCircle, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { PodConnectDialog } from "./PodConnectDialog";
 import { PodLogsDialog } from "./PodLogsDialog";
-import { LegacyPod } from "@/types/pod";
+import { Pod } from "@/types/pod";
 
 interface PodActionsProps {
-  pod: LegacyPod;
+  pod: Pod;
   onTogglePod: (podId: string) => void;
   onDeletePod: (podId: string) => void;
   viewLogs: (podName: string) => void;
@@ -27,7 +27,7 @@ export const PodActions: React.FC<PodActionsProps> = ({
         <Button 
           variant="outline" 
           className="flex gap-2 items-center"
-          onClick={() => onTogglePod(pod.id)}
+          onClick={() => onTogglePod(pod.podId)}
         >
           <StopCircle className="h-4 w-4" />
           Detener
@@ -38,7 +38,7 @@ export const PodActions: React.FC<PodActionsProps> = ({
         <Button 
           variant="outline" 
           className="flex gap-2 items-center"
-          onClick={() => onTogglePod(pod.id)}
+          onClick={() => onTogglePod(pod.podId)}
         >
           <Play className="h-4 w-4" />
           Iniciar
@@ -84,10 +84,10 @@ export const PodActions: React.FC<PodActionsProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará el pod "{pod.name}" y no se puede deshacer.
-              {pod.user && (
+              Esta acción eliminará el pod "{pod.podName}" y no se puede deshacer.
+              {pod.userEmail && (
                 <span className="block mt-2 text-sm">
-                  Este pod pertenece al usuario: <strong>{pod.user}</strong>
+                  Este pod pertenece al usuario: <strong>{pod.userEmail}</strong>
                 </span>
               )}
             </AlertDialogDescription>
@@ -95,7 +95,7 @@ export const PodActions: React.FC<PodActionsProps> = ({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction 
-              onClick={() => onDeletePod(pod.id)}
+              onClick={() => onDeletePod(pod.podId)}
               className="bg-red-500 hover:bg-red-600"
             >
               Eliminar

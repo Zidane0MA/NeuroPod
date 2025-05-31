@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,8 @@ import {
   Activity, 
   AreaChart,
   Menu,
-  FileBox
+  FileBox,
+  Infinity as InfinityIcon
 } from "lucide-react";
 import { 
   DropdownMenu, 
@@ -169,10 +169,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Saldo</span>
             <span className="font-semibold">
-              {typeof user?.balance === 'number' && user.balance === Infinity 
-                ? '∞ €' 
-                : `${user?.balance?.toFixed(2) || 0} €`
-              }
+              {user?.role === "admin" ? (
+                <span className="flex items-center gap-1 text-primary">
+                  <InfinityIcon className="h-4 w-4" />
+                  <span>€</span>
+                </span>
+              ) : (
+                `${user?.balance?.toFixed(2) || 0} €`
+              )}
             </span>
           </div>
         </div>

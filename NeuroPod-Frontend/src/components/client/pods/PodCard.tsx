@@ -2,12 +2,12 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Server, Zap } from "lucide-react";
-import { LegacyPod } from "@/types/pod";
+import { Pod } from "@/types/pod";
 import { PodStats } from "./PodStats";
 import { PodActions } from "./PodActions";
 
 interface PodCardProps {
-  pod: LegacyPod;
+  pod: Pod;
   onTogglePod: (podId: string) => void;
   onDeletePod: (podId: string) => void;
   viewLogs: (podName: string) => void;
@@ -49,12 +49,12 @@ export const PodCard: React.FC<PodCardProps> = ({
   };
 
   return (
-    <Card key={pod.id}>
+    <Card key={pod.podId}>
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle className="text-xl flex items-center gap-2">
             <Server className="h-5 w-5 text-primary" />
-            {pod.name}
+            {pod.podName}
             {getStatusBadge(pod.status)}
           </CardTitle>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -1,10 +1,10 @@
 import React from "react";
-import { LegacyPod } from "@/types/pod";
+import { Pod } from "@/types/pod";
 import { PodCard } from "./PodCard";
 import { EmptyPodsList } from "./EmptyPodsList";
 
 interface PodsContainerProps {
-  pods: LegacyPod[] | null | undefined;
+  pods: Pod[] | null | undefined;
   logs: string;
   onTogglePod: (podId: string) => void;
   onDeletePod: (podId: string) => void;
@@ -28,7 +28,7 @@ export const PodsContainer: React.FC<PodsContainerProps> = ({
       {pods.length > 0 ? (
         pods.map((pod) => (
           <PodCard
-            key={pod.id}
+            key={pod.podId}
             pod={pod}
             logs={logs}
             onTogglePod={onTogglePod}

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Template, PortMapping } from "@/types/template";
 import { templateService } from "@/services/template.service";
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, Server, HardDrive, Folder, Network, Trash2, Pencil } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const AdminTemplates = () => {
@@ -52,7 +52,6 @@ const AdminTemplates = () => {
 
   const handleOpenModal = (template?: Template) => {
     if (template) {
-      // Edit mode
       setEditMode(true);
       setCurrentTemplateId(template.id);
       setForm({
@@ -66,7 +65,6 @@ const AdminTemplates = () => {
         description: template.description
       });
     } else {
-      // Create mode
       setEditMode(false);
       setCurrentTemplateId(null);
       setForm({
@@ -111,14 +109,10 @@ const AdminTemplates = () => {
 
   const isFormValid = () => {
     if (!form.name.trim() || !form.dockerImage.trim()) return false;
-    
-    // At least one HTTP port must be filled
     const hasValidHttpPort = form.httpPorts.some(port => 
       port.port > 0 && port.serviceName.trim() !== ""
     );
-    
     if (!hasValidHttpPort) return false;
-
     return true;
   };
 
@@ -127,19 +121,16 @@ const AdminTemplates = () => {
       toast.error("Por favor completa todos los campos obligatorios");
       return;
     }
-
     setSubmitting(true);
     try {
       console.log('Submitting template:', form);
       
       if (editMode && currentTemplateId) {
-        // Update existing template
         const updatedTemplate = await templateService.updateTemplate(currentTemplateId, form);
         console.log('Template updated:', updatedTemplate);
         setTemplates((prev) => prev.map(t => t.id === currentTemplateId ? updatedTemplate : t));
         toast.success("Plantilla actualizada correctamente");
       } else {
-        // Create new template
         const newTemplate = await templateService.createTemplate(form);
         console.log('Template created:', newTemplate);
         setTemplates((prev) => [...prev, newTemplate]);
@@ -193,49 +184,62 @@ const AdminTemplates = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {templates.map((tpl) => (
-            <Card key={tpl.id} className="shadow-md border border-muted bg-white hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row justify-between items-center pb-2">
-                <div>
-                  <CardTitle className="text-lg font-semibold">{tpl.name}</CardTitle>
-                  <div className="text-xs text-muted-foreground">{tpl.dockerImage}</div>
+            <Card key={tpl.id} className="group shadow-sm border border-border bg-card hover:shadow-lg transition-shadow relative overflow-hidden">
+              <div className="absolute left-0 top-0 w-1 h-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+              <CardHeader className="flex flex-row justify-between items-center pb-2 bg-muted/50 border-b">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <Server className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-lg font-semibold text-primary group-hover:underline">{tpl.name}</CardTitle>
+                  </div>
+                  <div className="text-xs text-muted-foreground font-mono">{tpl.dockerImage}</div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleOpenModal(tpl)}>
-                    Editar
+                  <Button variant="outline" size="icon" onClick={() => handleOpenModal(tpl)} title="Editar">
+                    <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDelete(tpl.id)}>
-                    Eliminar
+                  <Button variant="destructive" size="icon" onClick={() => handleDelete(tpl.id)} title="Eliminar">
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-2 pt-0">
+              <CardContent className="space-y-2 pt-3 pb-4">
                 <div className="flex flex-wrap gap-4 text-sm">
-                  <div>
-                    <span className="font-medium text-gray-700">HTTP:</span>{" "}
-                    {tpl.httpPorts.map(p => `${p.port} (${p.serviceName})`).join(", ")}
+                  <div className="flex items-center gap-1">
+                    <Network className="h-4 w-4 text-blue-500" />
+                    <span className="font-medium text-gray-700">HTTP:</span>
+                    <span className="ml-1">{tpl.httpPorts.map(p => `${p.port} (${p.serviceName})`).join(", ")}</span>
                   </div>
                   {tpl.tcpPorts.length > 0 && (
-                    <div>
-                      <span className="font-medium text-gray-700">TCP:</span>{" "}
-                      {tpl.tcpPorts.map(p => `${p.port} (${p.serviceName})`).join(", ")}
+                    <div className="flex items-center gap-1">
+                      <Network className="h-4 w-4 text-green-600" />
+                      <span className="font-medium text-gray-700">TCP:</span>
+                      <span className="ml-1">{tpl.tcpPorts.map(p => `${p.port} (${p.serviceName})`).join(", ")}</span>
                     </div>
                   )}
-                  <div>
+                  <div className="flex items-center gap-1">
+                    <HardDrive className="h-4 w-4 text-orange-500" />
                     <span className="font-medium text-gray-700">Container Disk:</span> {tpl.containerDiskSize} GB
                   </div>
-                  <div>
+                  <div className="flex items-center gap-1">
+                    <HardDrive className="h-4 w-4 text-violet-500" />
                     <span className="font-medium text-gray-700">Volume Disk:</span> {tpl.volumeDiskSize} GB
                   </div>
-                  <div>
+                  <div className="flex items-center gap-1">
+                    <Folder className="h-4 w-4 text-gray-500" />
                     <span className="font-medium text-gray-700">Path:</span> {tpl.volumePath}
                   </div>
                 </div>
+                {tpl.description && (
+                  <div className="mt-2 text-xs text-muted-foreground line-clamp-3 whitespace-pre-line">
+                    {tpl.description}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
         </div>
       )}
-      
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-8 overflow-visible">
           <DialogHeader>
@@ -267,7 +271,6 @@ const AdminTemplates = () => {
                   />
                 </div>
               </div>
-
               {/* Puertos HTTP */}
               <div className="space-y-3">
                 <Label>Puertos HTTP a exponer *</Label>
@@ -313,7 +316,6 @@ const AdminTemplates = () => {
                   </div>
                 ))}
               </div>
-
               {/* Puertos TCP */}
               <div className="space-y-3">
                 <Label>Puertos TCP a exponer (Decorativo)</Label>
@@ -359,7 +361,6 @@ const AdminTemplates = () => {
                   </div>
                 ))}
               </div>
-
               {/* Tamaños de disco */}
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-6">
@@ -383,7 +384,6 @@ const AdminTemplates = () => {
                   />
                 </div>
               </div>
-
               {/* Volume Path */}
               <div className="space-y-2">
                 <Label htmlFor="volumePath">Volume Path</Label>
@@ -395,7 +395,6 @@ const AdminTemplates = () => {
                   onChange={handleChange} 
                 />
               </div>
-
               {/* Descripción */}
               <div className="space-y-2">
                 <Label htmlFor="description">Descripción (Markdown)</Label>

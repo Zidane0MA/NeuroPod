@@ -39,14 +39,14 @@ spec:
       mkdir -p /workspace/models/vae
       mkdir -p /workspace/output
       mkdir -p /workspace/input
-      
+
       # Crear enlaces simbólicos para que ComfyUI use el PVC
-      ln -sf /workspace/models /app/ComfyUI/models
-      ln -sf /workspace/output /app/ComfyUI/output
-      ln -sf /workspace/input /app/ComfyUI/input
-      
+      ln -sf /workspace/models /app/models
+      ln -sf /workspace/output /app/output
+      ln -sf /workspace/input /app/input
+
       # Iniciar ComfyUI
-      cd /app/ComfyUI && python main.py --listen 0.0.0.0 --port 8188
+      cd /app && python main.py --listen 0.0.0.0 --port 8188
   volumes:
   - name: workspace
     persistentVolumeClaim:
@@ -98,10 +98,12 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/keep-alive: "75"
+    nginx.ingress.kubernetes.io/keep-alive-requests: "100"
     # Headers estándar para WebSockets
     nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
 spec:
-  ingressClassName: nginx  # ✅ USAR INGRESS CLASS ESTÁNDAR
+  ingressClassName: neuropod-nginx
   tls:  # ← CON sección TLS
   - hosts:
     - comfyui-5vrg43-8188.neuropod.online

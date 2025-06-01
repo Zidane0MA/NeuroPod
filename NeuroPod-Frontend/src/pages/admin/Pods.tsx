@@ -281,7 +281,7 @@ const AdminPods = () => {
           </div>
         </div>
         {/* Indicador de modo actual */}
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
             {isSearchMode ? (
               <span className="flex items-center">

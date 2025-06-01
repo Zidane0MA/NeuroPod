@@ -87,53 +87,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 ## Funcionalidades ya implementadas y hechas
 
 ### Gestión de Templates (/admin/templates)
-- **Estado**: HECHO y funcional, falta mejorar diseño.
-- **Diseño**: Mejorar el diseño de la card del archivo `NeuroPod-Frontend\src\pages\admin\Templates.tsx` (lineas 190-232).
-```tsx
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {templates.map((tpl) => (
-            <Card key={tpl.id} className="shadow-md border border-muted bg-white hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row justify-between items-center pb-2">
-                <div>
-                  <CardTitle className="text-lg font-semibold">{tpl.name}</CardTitle>
-                  <div className="text-xs text-muted-foreground">{tpl.dockerImage}</div>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleOpenModal(tpl)}>
-                    Editar
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDelete(tpl.id)}>
-                    Eliminar
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2 pt-0">
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <div>
-                    <span className="font-medium text-gray-700">HTTP:</span>{" "}
-                    {tpl.httpPorts.map(p => `${p.port} (${p.serviceName})`).join(", ")}
-                  </div>
-                  {tpl.tcpPorts.length > 0 && (
-                    <div>
-                      <span className="font-medium text-gray-700">TCP:</span>{" "}
-                      {tpl.tcpPorts.map(p => `${p.port} (${p.serviceName})`).join(", ")}
-                    </div>
-                  )}
-                  <div>
-                    <span className="font-medium text-gray-700">Container Disk:</span> {tpl.containerDiskSize} GB
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Volume Disk:</span> {tpl.volumeDiskSize} GB
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Path:</span> {tpl.volumePath}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-```
+- **Estado**: HECHO y funcional, falta corregir errores de presentacion al abrir el modal.
 - **Funcionalidad**:
   - Lista plantillas existentes en la base de datos a través de la api como cards.
   - Botón para crear plantillas, abre un modal.
@@ -147,7 +101,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
       - Mismo comportamiento del puerto HTTP
     - Los 2 tamaños de disco que se tienen, al igual que `/pods/deploy` (Respetar los nuevos limites de tamaño, editar limites de `/pods/deploy`)
     - Una casilla de texto donde se podra ingresar el volume path. (Se debe mostrar por defecto /workspace)
-    - Una casilla de texto markdown donde el admin podrá ingresar detalles de la plantilla. (no cambiar comportamiento ni diseño)
+    - Una casilla de texto markdown donde el admin podrá ingresar detalles de la plantilla.
     - Un botón de guardar
   - Poder editar y eliminar plantillas con botones.
   - Tener en cuenta: Las plantillas listadas aqui se mostraran e `/pods/deploy` como templates sea para admin o cliente
@@ -266,7 +220,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
     - Sección backup (decorativa)
 
 ### Gestión de Usuarios (/admin/users)
-- **Estado**: Implementar, conectar y corregir
+- **Estado**: Implementar (conectar)
 - **Funcionalidades**:
   - Búsqueda por nombre o correo
   - Filtros (pods activos, conectados) | Boton Limpiar

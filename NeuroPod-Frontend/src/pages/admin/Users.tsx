@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { UsersSearch } from "@/components/admin/users/UsersSearch";
 import { UsersTable } from "@/components/admin/users/UsersTable";
-import { UserDetailDialog } from "@/components/admin/users/UserDetailDialog";
+// Eliminado UserDetailDialog
 import { UserActionDialog } from "@/components/admin/users/UserActionDialog";
 import { mockUsers, USERS_PER_PAGE } from "@/data/mockUsers";
 import { User } from "@/types/user";
@@ -14,29 +14,44 @@ const AdminUsers = () => {
   const [filterActivePods, setFilterActivePods] = useState(false);
   const [filterOnline, setFilterOnline] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [dialogType, setDialogType] = useState<'detail' | 'suspend' | 'delete' | 'salary' | null>(null);
+  const [dialogType, setDialogType] = useState<'suspend' | 'delete' | 'balance' | null>(null);
   const [visibleUsers, setVisibleUsers] = useState(USERS_PER_PAGE);
 
+  // Nuevo: función para filtrar usuarios según los filtros activos
+  const filterUsers = (baseUsers: User[], activePods: boolean, online: boolean) => {
+    let filtered = baseUsers;
+    if (activePods) {
+      filtered = filtered.filter(user => user.activePods > 0);
+    }
+    if (online) {
+      filtered = filtered.filter(user => user.status === 'online');
+    }
+    return filtered;
+  };
+
+  // Buscar solo por nombre/email, y limpiar filtros
   const handleSearch = () => {
     let filtered = mockUsers;
-    
     if (searchTerm) {
-      filtered = filtered.filter(user => 
+      filtered = filtered.filter(user =>
         user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    
-    if (filterActivePods) {
-      filtered = filtered.filter(user => user.activePods > 0);
-    }
-    
-    if (filterOnline) {
-      filtered = filtered.filter(user => user.status === 'online');
-    }
-    
+    // Al buscar, limpiar filtros
+    setFilterActivePods(false);
+    setFilterOnline(false);
     setUsers(filtered);
   };
+
+  // Cuando cambian los filtros, aplicar filtrado independiente
+  React.useEffect(() => {
+    if (!filterActivePods && !filterOnline) {
+      setUsers(mockUsers);
+      return;
+    }
+    setUsers(filterUsers(mockUsers, filterActivePods, filterOnline));
+  }, [filterActivePods, filterOnline]);
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -49,11 +64,6 @@ const AdminUsers = () => {
     setVisibleUsers(prev => prev + USERS_PER_PAGE);
   };
 
-  const openUserDetail = (user: User) => {
-    setSelectedUser(user);
-    setDialogType('detail');
-  };
-
   const openSuspendDialog = (user: User) => {
     setSelectedUser(user);
     setDialogType('suspend');
@@ -64,9 +74,9 @@ const AdminUsers = () => {
     setDialogType('delete');
   };
 
-  const openSalaryDialog = (user: User) => {
+  const openBalanceDialog = (user: User) => {
     setSelectedUser(user);
-    setDialogType('salary');
+    setDialogType('balance');
   };
 
   const closeDialog = () => {
@@ -74,13 +84,13 @@ const AdminUsers = () => {
     setSelectedUser(null);
   };
 
-  const assignSalary = (userId: string, salary: number) => {
-    setUsers(prevUsers => 
-      prevUsers.map(user => 
-        user.id === userId ? { ...user, salary } : user
+  const assignBalance = (userId: string, balance: number) => {
+    setUsers(prevUsers =>
+      prevUsers.map(user =>
+        user.id === userId ? { ...user, balance } : user
       )
     );
-    toast.success("Salario asignado correctamente");
+    toast.success("Saldo asignado correctamente");
     closeDialog();
   };
 
@@ -102,20 +112,13 @@ const AdminUsers = () => {
         clearFilters={clearFilters}
       />
 
-      <UsersTable 
+      <UsersTable
         users={users}
         visibleUsers={visibleUsers}
         loadMore={loadMore}
-        openUserDetail={openUserDetail}
         openSuspendDialog={openSuspendDialog}
         openDeleteDialog={openDeleteDialog}
-        openSalaryDialog={openSalaryDialog}
-      />
-
-      <UserDetailDialog 
-        user={selectedUser} 
-        open={dialogType === 'detail'} 
-        onOpenChange={() => dialogType === 'detail' && closeDialog()} 
+        openBalanceDialog={openBalanceDialog}
       />
 
       <UserActionDialog
@@ -140,13 +143,13 @@ const AdminUsers = () => {
 
       <UserActionDialog
         user={selectedUser}
-        open={dialogType === 'salary'}
-        onOpenChange={() => dialogType === 'salary' && closeDialog()}
-        title="Asignar Salario"
-        description="Introduce el salario mensual para este usuario."
-        actionLabel="Asignar Salario"
-        isSalaryAction={true}
-        onSalaryAssign={assignSalary}
+        open={dialogType === 'balance'}
+        onOpenChange={() => dialogType === 'balance' && closeDialog()}
+        title="Asignar Saldo"
+        description="Introduce el saldo para este usuario."
+        actionLabel="Asignar Saldo"
+        isBalanceAction={true}
+        onBalanceAssign={assignBalance}
         onAction={() => {}}
       />
     </DashboardLayout>

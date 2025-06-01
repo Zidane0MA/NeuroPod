@@ -236,26 +236,28 @@ const AdminPods = () => {
       <PodsHeader user={user} />
       
       {/* Sección de búsqueda por usuario */}
-      <div className="bg-white shadow-sm rounded-lg p-2 mb-8">
-        <div className="mb-4">
-          <h2 className="text-lg text-gray-700 font-semibold mb-2">Buscar Pods por Usuario</h2>
-          <div className="flex space-x-2">
-            <div className="flex-1">
-
+      <div className="bg-gray-50 border border-gray-200 shadow-sm rounded-lg p-6 mt-8 mb-8">
+        <div className="mb-6">
+          <h2 className="text-lg text-gray-700 font-semibold mb-3">Buscar Pods por Usuario</h2>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 id="searchEmail"
                 type="email"
                 placeholder="cliente@example.com"
                 value={searchEmail}
                 onChange={(e) => setSearchEmail(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyPress}
                 disabled={searching}
+                className="pl-10 w-full"
               />
             </div>
-            <div className="flex items-end space-x-2">
+            <div className="flex flex-wrap gap-2 items-end">
               <Button 
                 onClick={handleSearchByEmail}
                 disabled={searching || !searchEmail.trim()}
+                className="min-w-[110px]"
               >
                 {searching ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-1" />
@@ -264,12 +266,12 @@ const AdminPods = () => {
                 )}
                 Buscar
               </Button>
-              
               {isSearchMode && (
                 <Button 
                   variant="outline" 
                   onClick={handleClearSearch}
                   disabled={searching}
+                  className="min-w-[110px]"
                 >
                   <X className="h-4 w-4 mr-1" />
                   Limpiar
@@ -278,9 +280,8 @@ const AdminPods = () => {
             </div>
           </div>
         </div>
-        
         {/* Indicador de modo actual */}
-        <div className="flex items-center justify-between pt-3">
+        <div className="flex items-center justify-between pt-2">
           <div className="text-sm text-muted-foreground">
             {isSearchMode ? (
               <span className="flex items-center">

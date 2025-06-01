@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
-import { Server, HardDrive, HelpCircle, Infinity as InfinityIcon } from "lucide-react";
+import { Server, HardDrive, HelpCircle} from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
@@ -193,16 +193,7 @@ const ClientPodDeploy = () => {
         
         <div className="text-sm text-right">
           <div className="text-muted-foreground">Saldo</div>
-          <div className="font-semibold">
-            {user?.role === "admin" ? (
-              <span className="flex items-center gap-1 text-primary justify-end">
-                <InfinityIcon className="h-4 w-4" />
-                <span>€</span>
-              </span>
-            ) : (
-              `${user?.balance?.toFixed(2) || 0} €`
-            )}
-          </div>
+          <div className="font-semibold">{user?.balance?.toFixed(2) || 0} €</div>
         </div>
       </div>
       

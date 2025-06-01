@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Template, PortMapping } from "@/types/template";
 import { templateService } from "@/services/template.service";
-import ReactMarkdown from "react-markdown";
 import { Plus, Minus } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -172,9 +171,14 @@ const AdminTemplates = () => {
 
   return (
     <DashboardLayout title="Administrar Plantillas">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Plantillas de Pods</h1>
-        <Button onClick={() => handleOpenModal()}>Crear Plantilla</Button>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Plantillas</h1>
+          <p className="text-muted-foreground">Gestiona y crea plantillas de despliegue para los pods</p>
+        </div>
+        <Button className="flex items-center gap-2" onClick={() => handleOpenModal()}>
+          <span>Crear Plantilla</span>
+        </Button>
       </div>
       {loading ? (
         <div className="text-center py-10">

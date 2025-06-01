@@ -21,8 +21,8 @@ interface UserActionDialogProps {
   description: string;
   actionLabel: string;
   onAction: () => void;
-  isSalaryAction?: boolean;
-  onSalaryAssign?: (userId: string, salary: number) => void;
+  isBalanceAction?: boolean;
+  onBalanceAssign?: (userId: string, balance: number) => void;
 }
 
 export const UserActionDialog = ({ 
@@ -33,21 +33,21 @@ export const UserActionDialog = ({
   description,
   actionLabel,
   onAction,
-  isSalaryAction = false,
-  onSalaryAssign
+  isBalanceAction = false,
+  onBalanceAssign
 }: UserActionDialogProps) => {
-  const [salary, setSalary] = useState<number>(user?.salary || 0);
+  const [balance, setBalance] = useState<number>(user?.balance || 0);
 
-  const handleSalaryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBalanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value);
     if (!isNaN(value) && value >= 0) {
-      setSalary(value);
+      setBalance(value);
     }
   };
 
   const handleAction = () => {
-    if (isSalaryAction && onSalaryAssign && user) {
-      onSalaryAssign(user.id, salary);
+    if (isBalanceAction && onBalanceAssign && user) {
+      onBalanceAssign(user.id, balance);
     } else {
       onAction();
     }
@@ -66,16 +66,16 @@ export const UserActionDialog = ({
           <div className="py-4">
             <p><strong>Usuario:</strong> {user.name}</p>
             <p><strong>Email:</strong> {user.email}</p>
-            {isSalaryAction && (
+            {isBalanceAction && (
               <div className="mt-4">
-                <Label htmlFor="salary">Asignar Salario (€)</Label>
+                <Label htmlFor="balance">Asignar Saldo (€)</Label>
                 <Input
-                  id="salary"
+                  id="balance"
                   type="number"
                   min="0"
                   step="0.01"
-                  value={salary}
-                  onChange={handleSalaryChange}
+                  value={balance}
+                  onChange={handleBalanceChange}
                   className="mt-1"
                 />
               </div>
@@ -85,7 +85,7 @@ export const UserActionDialog = ({
         <DialogFooter className="flex flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">Cancelar</Button>
           <Button 
-            variant={isSalaryAction ? "default" : "destructive"} 
+            variant={isBalanceAction ? "default" : "destructive"} 
             onClick={handleAction} 
             className="w-full sm:w-auto"
           >

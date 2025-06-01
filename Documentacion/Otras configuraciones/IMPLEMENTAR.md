@@ -77,3 +77,51 @@
    - Desarrollar la recopilación de métricas de pods
    - Implementar la visualización de estadísticas
    - Configurar el sistema de notificaciones
+
+## 🔮 Roadmap Futuro pods simulados
+
+### **Versión 2.0 del Modo Simulación**
+
+- [ ] **Métricas temporales** que cambien en tiempo real
+- [ ] **Templates simulados** para diferentes tipos de pods
+- [ ] **Simulación de WebSockets** con eventos sintéticos
+
+### **Integración con Backend Real**
+
+- [ ] **Detección automática** de disponibilidad del backend
+- [ ] **Fallback inteligente** a simulación si falla el backend
+- [ ] **Modo híbrido** con algunos datos reales y otros simulados
+- [ ] **Sincronización** de pods simulados con backend cuando esté disponible
+
+---
+
+### **Agregar Nuevas Funcionalidades**
+
+1. **Actualizar tipos**:
+```typescript
+// En src/types/pod.ts
+export interface SimulatedPod extends Pod {
+  isSimulated: true;
+  newFeature?: string; // Nueva característica
+}
+```
+
+2. **Implementar lógica**:
+```typescript
+// En src/utils/podUtils.ts
+export const newSimulatedFeature = (): SimulatedPod => {
+  const pod = getSimulatedPod();
+  // Lógica de la nueva funcionalidad
+  return pod;
+};
+```
+
+3. **Integrar en componentes**:
+```typescript
+// En componentes
+if (isSimulated) {
+  newSimulatedFeature();
+} else {
+  await apiService.newFeature();
+}
+```

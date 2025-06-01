@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +27,7 @@ export const UsersSearch = ({
   return (
     <div className="mb-6">
       <div className="flex flex-col md:flex-row gap-4 mb-4">
-        <div className="flex-1 relative">
+        <div className="flex-1 relative flex gap-2 items-center">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="Buscar por nombre o email"
@@ -37,26 +36,26 @@ export const UsersSearch = ({
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           />
+          <Button onClick={handleSearch}>
+            Buscar
+          </Button>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant={filterActivePods ? "default" : "outline"} onClick={() => {
-            setFilterActivePods(!filterActivePods);
-            handleSearch();
-          }}>
+          <Button
+            variant={filterActivePods ? "default" : "outline"}
+            onClick={() => setFilterActivePods(!filterActivePods)}
+          >
             Pods Activos
           </Button>
-          <Button variant={filterOnline ? "default" : "outline"} onClick={() => {
-            setFilterOnline(!filterOnline);
-            handleSearch();
-          }}>
+          <Button
+            variant={filterOnline ? "default" : "outline"}
+            onClick={() => setFilterOnline(!filterOnline)}
+          >
             Conectados
           </Button>
           <Button variant="ghost" onClick={clearFilters}>
             <FilterX className="h-4 w-4 mr-2" />
             Limpiar
-          </Button>
-          <Button onClick={handleSearch}>
-            Buscar
           </Button>
         </div>
       </div>

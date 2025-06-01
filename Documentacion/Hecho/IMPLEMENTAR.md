@@ -269,14 +269,11 @@ import ProtectedRoute from "./components/ProtectedRoute";
 - **Estado**: Implementar, conectar y corregir
 - **Funcionalidades**:
   - Búsqueda por nombre o correo
-  - Filtros (pods activos, conectados)
+  - Filtros (pods activos, conectados) | Boton Limpiar
   - Tabla de usuarios con:
-    - Correo, nombre, pods (n/n), estado (online/offline)
-    - Modal de detalles (email, nombre, fecha de registro, pods, saldo, estado)
-    - Modal para asignar saldo
-    - Modal para suspender usuario
-    - Modal para eliminar usuario
+    - Correo, nombre, resgitro, pods (n/n), saldo, estado (online/offline), Acciones.
+    - Modal de acciones:
+      - Modal para asignar saldo
+      - Modal para suspender usuario
+      - Modal para eliminar usuario
   - Botón "Cargar Más" (paginación de 15 en 15)
-- **Correcciones**:
-  - Eliminar columna "salario"
-  - Cambiar "asignar salario" por "asignar saldo"

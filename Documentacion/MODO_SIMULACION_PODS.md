@@ -262,37 +262,6 @@ VITE_API_URL=http://localhost:3000
 
 ## 🛠️ Mantenimiento y Extensión
 
-### **Agregar Nuevas Funcionalidades**
-
-1. **Actualizar tipos**:
-```typescript
-// En src/types/pod.ts
-export interface SimulatedPod extends Pod {
-  isSimulated: true;
-  newFeature?: string; // Nueva característica
-}
-```
-
-2. **Implementar lógica**:
-```typescript
-// En src/utils/podUtils.ts
-export const newSimulatedFeature = (): SimulatedPod => {
-  const pod = getSimulatedPod();
-  // Lógica de la nueva funcionalidad
-  return pod;
-};
-```
-
-3. **Integrar en componentes**:
-```typescript
-// En componentes
-if (isSimulated) {
-  newSimulatedFeature();
-} else {
-  await apiService.newFeature();
-}
-```
-
 ### **Testing**
 
 ```bash
@@ -320,26 +289,6 @@ npm run dev
 - ✅ **100%** de estados de pod
 - ✅ **100%** de servicios y conexiones
 - ✅ **100%** de logs y debugging
-
-## 🔮 Roadmap Futuro
-
-### **Versión 2.0 del Modo Simulación**
-
-- [ ] **Múltiples pods simulados** por usuario
-- [ ] **Persistencia en localStorage** entre sesiones
-- [ ] **Simulación de errores** y estados de fallo
-- [ ] **Métricas temporales** que cambien en tiempo real
-- [ ] **Templates simulados** para diferentes tipos de pods
-- [ ] **Simulación de WebSockets** con eventos sintéticos
-
-### **Integración con Backend Real**
-
-- [ ] **Detección automática** de disponibilidad del backend
-- [ ] **Fallback inteligente** a simulación si falla el backend
-- [ ] **Modo híbrido** con algunos datos reales y otros simulados
-- [ ] **Sincronización** de pods simulados con backend cuando esté disponible
-
----
 
 ## 📞 Soporte
 

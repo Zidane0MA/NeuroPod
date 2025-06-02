@@ -19,7 +19,5 @@ router.get('/public', (req, res) => {
 
 // Rutas protegidas
 router.get('/', protect, getSystemStatus);
-router.get('/pricing', protect, getPricing);
-router.post('/calculate-cost', protect, calculateCost);
 
 module.exports = router;

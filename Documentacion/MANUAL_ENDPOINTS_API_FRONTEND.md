@@ -750,7 +750,9 @@ Authorization: Bearer <token>
 
 ---
 
-### **GET** `/api/status/pricing`
+## 💰 Endpoints de Precios
+
+### **GET** `/api/pricing`
 **Descripción**: Obtener configuración actual de precios
 
 **Headers requeridos**:
@@ -763,43 +765,126 @@ Authorization: Bearer <token>
 {
   "success": true,
   "data": {
-    "gpu": {
-      "rtx-4050": 2.50,
-      "rtx-4080": 4.99,
-      "rtx-4090": 8.99
+    "gpus": {
+      "rtx-4050": {
+        "name": "RTX 4050",
+        "price": 2.50,
+        "available": true,
+        "specs": {
+          "memory": "6GB GDDR6",
+          "cores": 2560,
+          "performance": "Entry Level"
+        }
+      },
+      "rtx-4080": {
+        "name": "RTX 4080",
+        "price": 4.99,
+        "available": false,
+        "specs": {
+          "memory": "16GB GDDR6X",
+          "cores": 9728,
+          "performance": "Ultra Performance"
+        }
+      },
+      "rtx-4090": {
+        "name": "RTX 4090",
+        "price": 8.99,
+        "available": false,
+        "specs": {
+          "memory": "24GB GDDR6X",
+          "cores": 16384,
+          "performance": "Flagship"
+        }
+      }
     },
     "storage": {
-      "containerDisk": 0.05,
-      "volumeDisk": 0.10
+      "containerDisk": {
+        "price": 0.05,
+        "unit": "€/GB/hora",
+        "description": "Almacenamiento temporal del contenedor"
+      },
+      "volumeDisk": {
+        "price": 0.10,
+        "unit": "€/GB/hora",
+        "description": "Almacenamiento persistente en /workspace"
+      }
     },
-    "freeTier": true
+    "limits": {
+      "containerDiskMax": 100,
+      "volumeDiskMax": 150,
+      "portsMax": 10
+    },
+    "freeTier": {
+      "enabled": true,
+      "initialBalance": 10.00
+    }
   }
 }
 ```
 
 **Casos de uso**:
-- Mostrar precios en página de deploy
-- Mostrar precios en pagina /pricing (no necesitaria autorizacion)
-- Calcular costos estimados
+- Cargar precios en páginas de deploy
+- Mostrar precios en página `/pricing` 
+- Obtener configuración para cálculos de costos
+- Cargar opciones de GPU disponibles
 
 ---
 
-### **POST** `/api/status/pricing`
-**Descripción**: Configuración de precios
+### **PUT** `/api/pricing`
+**Descripción**: Actualizar configuración de precios (solo administradores)
 
 **Headers requeridos**:
 ```
 Authorization: Bearer <admin_token>
 ```
 
-Verificar con list_allowed_directories las carpetas a las que tienes acceso, tengo un problema con mi backend y el frontend, en mi frontend necesito configurar precios en la pagina /admin/settings (src\pages\admin\Settings.tsx y src\components\admin\settings\PricingSettings.tsx), en esta pagina se deben ver los precios configurados actuales y actualizar los precios, (no planeo darle funcionalidad al boton Free Tier), estas configuraciones de precios se deben ver reflejadas en /pricing (src\pages\Pricing.tsx y src\components\pricing\PricingCards.tsx) y en las paginas /admin/pods/deploy (src\pages\admin\PodDeploy.tsx) y /client/pods/deploy (src\pages\client\PodDeploy.tsx). En mi backend tengo un sistema de obtención de precios por variables de entorno, quiero cambiarlo, que se obtiene de (src\models\Pod.model.js) y se usa en (src\controllers\status.controller.js, src\controllers\pod.controller.js y src\utils\podHelpers.js), tambien tengo unas rutas configuradas en (src\routes\status.routes.js, /pricing y /calculate-cost) cosa que falta adaptar. Tambien he creado un nuevo modelo de precios, aunque es muy basico (src\models\Pricing.model.js).
+**Payload**:
+```json
+{
+  "gpus": {
+    "rtx-4050": {
+      "price": 3.00,
+      "available": true
+    },
+    "rtx-4080": {
+      "price": 5.50,
+      "available": true
+    }
+  },
+  "storage": {
+    "containerDisk": {
+      "price": 0.06
+    },
+    "volumeDisk": {
+      "price": 0.12
+    }
+  },
+  "freeTier": {
+    "enabled": true,
+    "initialBalance": 15.00
+  }
+}
+```
+
+**Respuesta exitosa**:
+```json
+{
+  "success": true,
+  "message": "Precios actualizados correctamente",
+  "data": {
+    // Configuración completa actualizada
+  }
+}
+```
 
 **Casos de uso**:
-- Configurar precios en pagina /admin/settings
+- Configurar precios desde `/admin/settings`
+- Actualizar disponibilidad de GPUs
+- Modificar configuración de free tier
 
 ---
 
-### **POST** `/api/status/calculate-cost`
+### **POST** `/api/pricing/calculate-cost`
 **Descripción**: Calcular costo estimado de configuración
 
 **Headers requeridos**:
@@ -822,20 +907,129 @@ Authorization: Bearer <token>
 {
   "success": true,
   "data": {
-    "hourly": 2.80,
-    "daily": 67.20,
-    "breakdown": {
-      "gpu": 2.50,
-      "containerDisk": 0.50,
-      "volumeDisk": 2.00
+    "gpu": {
+      "name": "RTX 4050",
+      "hourlyRate": 2.50,
+      "cost": 60.00,
+      "hours": 24
+    },
+    "containerDisk": {
+      "size": 10,
+      "hourlyRate": 0.50,
+      "cost": 12.00,
+      "hours": 24
+    },
+    "volumeDisk": {
+      "size": 20,
+      "hourlyRate": 2.00,
+      "cost": 48.00,
+      "hours": 24
+    },
+    "total": 120.00,
+    "totalHourly": 5.00,
+    "currency": "EUR"
+  }
+}
+```
+
+**Casos de uso**:
+- Calculadora de costos en páginas de deploy
+- Estimaciones antes de crear pods
+- Validación de saldo suficiente
+
+---
+
+### **GET** `/api/pricing/gpus/available`
+**Descripción**: Obtener lista de GPUs disponibles
+
+**Headers requeridos**:
+```
+Authorization: Bearer <token>
+```
+
+**Respuesta exitosa**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "rtx-4050",
+      "name": "RTX 4050",
+      "price": 2.50,
+      "available": true,
+      "specs": {
+        "memory": "6GB GDDR6",
+        "cores": 2560,
+        "performance": "Entry Level"
+      }
+    }
+  ]
+}
+```
+
+**Casos de uso**:
+- Cargar solo GPUs disponibles en selectores
+- Filtrar opciones por disponibilidad
+
+---
+
+### **GET** `/api/pricing/gpus/{gpuId}`
+**Descripción**: Obtener información de GPU específica
+
+**Parámetros de ruta**:
+- `gpuId`: ID de la GPU (ej: `rtx-4050`)
+
+**Headers requeridos**:
+```
+Authorization: Bearer <token>
+```
+
+**Respuesta exitosa**:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "rtx-4050",
+    "name": "RTX 4050",
+    "price": 2.50,
+    "available": true,
+    "specs": {
+      "memory": "6GB GDDR6",
+      "cores": 2560,
+      "performance": "Entry Level"
     }
   }
 }
 ```
 
 **Casos de uso**:
-- Calculadora de costos en página de deploy
-- Estimaciones antes de crear pods
+- Obtener detalles específicos de una GPU
+- Verificar disponibilidad antes de crear pod
+
+---
+
+### **POST** `/api/pricing/reset`
+**Descripción**: Resetear precios a valores por defecto (solo administradores)
+
+**Headers requeridos**:
+```
+Authorization: Bearer <admin_token>
+```
+
+**Respuesta exitosa**:
+```json
+{
+  "success": true,
+  "message": "Precios restablecidos a valores por defecto",
+  "data": {
+    // Configuración resetead a valores por defecto
+  }
+}
+```
+
+**Casos de uso**:
+- Botón "Restablecer por Defecto" en `/admin/settings`
+- Recuperación de configuración corrupta
 
 ---
 

@@ -22,7 +22,7 @@ REM Iniciar Docker Desktop
 REM ===============================
 echo Iniciando Docker Desktop...
 start "" "C:\Program Files\Docker\Docker\Docker Desktop.exe"
-timeout /t 30 /nobreak >nul
+timeout /t 10 /nobreak >nul
 echo Esperando a que Docker esté listo...
 
 REM ===============================
@@ -35,7 +35,7 @@ REM Iniciar Minikube
 REM ===============================
 echo Iniciando Minikube...
 start "Iniciar minikube" cmd /k minikube start --driver=docker --container-runtime=docker --gpus=all --memory=14000mb --cpus=8 --addons=ingress,storage-provisioner,default-storageclass
-timeout /t 40 /nobreak >nul
+timeout /t 15 /nobreak >nul
 echo Esperando a que Minikube esté listo...
 
 REM ===============================
@@ -46,7 +46,8 @@ start "Minikube Tunnel" cmd /k minikube tunnel
 REM ===============================
 REM Iniciar MongoDB (ajusta versión)
 REM ===============================
-start "MongoDB" cmd /k "C:\Program Files\MongoDB\Server\8.0\bin\mongod.exe" --dbpath="C:\data\db"
+start "MongoDB" cmd /k ""C:\Program Files\MongoDB\Server\8.0\bin\mongod.exe" --dbpath="C:\data\db""
+timeout /t 10 /nobreak >nul
 
 REM ===============================
 REM Iniciar Backend (ruta relativa)

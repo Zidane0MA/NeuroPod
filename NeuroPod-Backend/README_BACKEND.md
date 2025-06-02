@@ -22,11 +22,8 @@ npm run dev
 # Ejecutar en producción
 npm start
 
-# Poblar la base de datos con datos iniciales
+# Poblar la base de datos con datos iniciales (templates y precios GPU)
 npm run seed
-
-# Poblar solo las plantillas predeterminadas
-npm run seed:templates
 ```
 
 ## Estructura del Proyecto
@@ -45,6 +42,7 @@ src/
 │   ├── auth.controller.js      # Autenticación y gestión de usuarios
 │   ├── container.controller.js # Gestión de contenedores
 │   ├── pod.controller.js       # Gestión de pods en Kubernetes
+│   ├── princing.controller.js  # Gestión de precios de las GPU
 │   ├── status.controller.js    # Estado del sistema
 │   └── template.controller.js  # Gestión de plantillas
 │
@@ -54,28 +52,31 @@ src/
 ├── models/               # Modelos de datos (Mongoose)
 │   ├── Log.model.js            # Registro de actividades
 │   ├── Pod.model.js            # Información de pods
+│   ├── Pricing.model.js        # Información de precios GPU
 │   ├── Session.model.js        # Sesiones de usuario
 │   ├── Template.model.js       # Plantillas de contenedores
 │   └── User.model.js           # Usuarios y roles
 │
 ├── routes/               # Definición de rutas API
 │   ├── auth.routes.js          # Rutas de autenticación
-│   ├── container.routes.js     # Rutas para contenedores
 │   ├── pod.routes.js           # Rutas para pods
+│   ├── princing.routes.js      # Rutas para precios
 │   ├── status.routes.js        # Rutas para estado del sistema
 │   └── template.routes.js      # Rutas para plantillas
 │
 ├── seeders/              # Scripts para poblar la base de datos
 │   ├── index.js                # Ejecutor principal de seeders
-│   └── templates.seeder.js     # Plantillas predeterminadas
+│   ├── pricing.seeder.js       # Precios iniciales predeterminadas
+│   └── templates.seeder.js     # Plantillas iniciales predeterminadas
 │
-├── utils/                # Utilidades y funciones auxiliares
+├── services/                # Servicios de Kubernetes y monitorizacion
 │   ├── kubernetes.service.js   # Manejar operaciones de Kubernetes
 │   └── podMonitor.service.js   # Monitorear el estado de los pods y actualizar la base de datos
 │
 └── utils/                # Utilidades y funciones auxiliares
     ├── errorResponse.js        # Formato estándar para errores
-    └── logger.js               # Sistema de logging
+    ├── logger.js               # Sistema de logging
+    └── podMonitor.service.js   # Funciones para usadas por kubernetes.service.js 
 
 ```
 
@@ -85,15 +86,10 @@ src/
 
 - ✅ GET `/api/health` - Verificar estado del servidor
 
-### Rutas de status publicas - `src/routes/status.routes.js`
-
-- ✅ GET `/api/status/public` - Verificar estado público de la API
-
 ### Rutas de status - `src/routes/status.routes.js`
 
-- ✅ GET `/api/status` - Estado del sistema
-- ✅ GET `/api/status/pricing` - Configuración de precios
-- ✅ POST ` /api/status/calculate-cost` - Calcular costo
+- ✅ GET `/api/status/public` - Verificar estado público de la API
+- ✅ GET `/api/status` - Estado del sistema protegido
 
 ### Autenticación - `src/routes/auth.routes.js`
 
@@ -129,30 +125,24 @@ src/
 - ✅ PUT `/api/templates/:id` - Actualizar plantilla existente (creador o admin)
 - ✅ DELETE `/api/templates/:id` - Eliminar plantilla (creador o admin)
 
+### Gestión de Precios y GPU `src/routes/pricing.routes.js`
+
+- ✅ GET `/api/pricing` - Obtener la configuración actual de precios de recursos (requiere autenticación)
+- ✅ POST `/api/pricing/calculate-cost` - Calcular el costo estimado de un pod según los recursos solicitados (requiere autenticación)
+- ✅ GET `/api/pricing/gpus/available` - Listar las GPUs disponibles para asignar a pods (requiere autenticación)
+- ✅ GET `/api/pricing/gpus/:gpuId` - Obtener información detallada de una GPU específica (requiere autenticación)
+- ✅ PUT `/api/pricing` - Actualizar la configuración de precios (solo administradores)
+- ✅ POST `/api/pricing/reset` - Restablecer los precios a los valores predeterminados (solo administradores)
+
 ## Cambios Pendientes por Implementar
 
 1. **Integración con Kubernetes**:
    - Mejorar la lógica para desplegar pods en un clúster de Kubernetes
    - Integrar el uso de plantillas en el proceso de despliegue de pods
 
-2. **Gestión de Plantillas** ✅ **IMPLEMENTADO**:
-   - ✅ Crear modelos y rutas para gestionar templates
-   - ✅ Implementar la API para crear, modificar y eliminar plantillas
-   - ✅ Plantillas predeterminadas mediante seeders
-
-3. **Sistema de Pagos y Saldo**:
-   - Implementar la lógica para descontar saldo según el uso de recursos
-   - Agregar endpoints para que los administradores asignen saldo a usuarios
-   - Crear sistema de notificaciones para saldo bajo
-
-4. **Monitoreo en Tiempo Real**:
+2. **Monitoreo en Tiempo Real**:
    - Mejorar WebSockets para transmitir métricas de uso de recursos
    - Implementar sistema para obtener estadísticas de uso de CPU, memoria, GPU y espacio de discos
-
-5. **Seguridad**:
-   - Implementar rate limiting para prevenir abusos
-   - Mejorar validación de entrada en todos los endpoints
-   - Implementar registros de auditoría más detallados
 
 ## Notas Importantes
 

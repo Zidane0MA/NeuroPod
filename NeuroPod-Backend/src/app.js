@@ -5,6 +5,7 @@ const authRoutes = require('./routes/auth.routes');
 const statusRoutes = require('./routes/status.routes');
 const podRoutes = require('./routes/pod.routes');
 const templateRoutes = require('./routes/template.routes');
+const pricingRoutes = require('./routes/pricing.routes');
 
 // Cargar variables de entorno
 dotenv.config();
@@ -35,6 +36,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/status', statusRoutes);
 app.use('/api/pods', podRoutes);
 app.use('/api/templates', templateRoutes);
+app.use('/api/pricing', pricingRoutes);
 
 // Middleware para manejo de errores
 app.use((err, req, res, next) => {

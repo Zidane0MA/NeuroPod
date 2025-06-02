@@ -269,20 +269,47 @@ PodSchema.virtual('formattedUptime').get(function() {
 });
 
 // Método virtual para calcular el coste por hora
+// Método virtual para calcular el coste por hora (DEPRECATED)
 PodSchema.virtual('costPerHour').get(function() {
-  // Precios configurables (estos deberían venir de configuración)
-  const gpuPricing = {
-    'rtx-4050': parseFloat(process.env.GPU_RTX4050_PRICE) || 0.50,
-    'rtx-4080': parseFloat(process.env.GPU_RTX4080_PRICE) || 1.50,
-    'rtx-4090': parseFloat(process.env.GPU_RTX4090_PRICE) || 2.50
+  // NOTA: Este virtual está deprecated. Usar Pricing.calculateCost() en su lugar
+  // Valores por defecto para evitar errores si no hay conexión a la base de datos
+  const defaultGpuPricing = {
+    'rtx-4050': 2.50,
+    'rtx-4080': 4.99,
+    'rtx-4090': 8.99
   };
   
-  const containerDiskPrice = (parseFloat(process.env.CONTAINER_DISK_PRICE) || 0.05) * this.containerDiskSize;
-  const volumeDiskPrice = (parseFloat(process.env.VOLUME_DISK_PRICE) || 0.10) * this.volumeDiskSize;
-  const gpuPrice = gpuPricing[this.gpu] || 0.3;
+  const defaultContainerDiskPrice = 0.05;
+  const defaultVolumeDiskPrice = 0.10;
+  
+  const gpuPrice = defaultGpuPricing[this.gpu] || 2.50;
+  const containerDiskPrice = defaultContainerDiskPrice * this.containerDiskSize;
+  const volumeDiskPrice = defaultVolumeDiskPrice * this.volumeDiskSize;
   
   return gpuPrice + containerDiskPrice + volumeDiskPrice;
 });
+
+// Método para calcular costo usando el nuevo sistema de precios
+PodSchema.methods.calculateCurrentCost = async function() {
+  try {
+    const Pricing = require('./Pricing.model');
+    const pricing = await Pricing.getCurrentPricing();
+    return pricing.calculateCost({
+      gpu: this.gpu,
+      containerDiskSize: this.containerDiskSize,
+      volumeDiskSize: this.volumeDiskSize
+    });
+  } catch (error) {
+    console.warn('Error calculating current cost, using fallback:', error.message);
+    // Fallback al virtual anterior
+    return {
+      gpu: this.costPerHour - (0.05 * this.containerDiskSize) - (0.10 * this.volumeDiskSize),
+      containerDisk: 0.05 * this.containerDiskSize,
+      volumeDisk: 0.10 * this.volumeDiskSize,
+      total: this.costPerHour
+    };
+  }
+};
 
 // Método para actualizar estadísticas
 PodSchema.methods.updateStats = function(newStats) {

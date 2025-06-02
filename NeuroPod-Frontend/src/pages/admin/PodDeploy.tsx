@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { podService } from "@/services/pod.service";
+import { pricingService, PricingData } from "@/services/pricing.service";
 import { PodCreateParams } from "@/types/pod";
 import { Template } from "@/types/template";
 
@@ -30,35 +31,7 @@ interface GpuOption {
   image: string;
 }
 
-const gpuOptions: GpuOption[] = [
-  {
-    id: "rtx-4050",
-    name: "NVIDIA RTX 4050",
-    available: true,
-    price: 2.50,
-    vram: "6GB",
-    cores: 2560,
-    image: "gpu-4050.jpg"
-  },
-  {
-    id: "rtx-4080",
-    name: "NVIDIA RTX 4080",
-    available: false,
-    price: 4.99,
-    vram: "16GB",
-    cores: 9728,
-    image: "gpu-4080.jpg"
-  },
-  {
-    id: "rtx-4090",
-    name: "NVIDIA RTX 4090",
-    available: false,
-    price: 8.99,
-    vram: "24GB",
-    cores: 16384,
-    image: "gpu-4090.jpg"
-  }
-];
+// GPUs se cargan dinámicamente desde el servicio de precios
 
 const AdminPodDeploy = () => {
   const [selectedGpu, setSelectedGpu] = useState<GpuOption | null>(null);
@@ -78,11 +51,65 @@ const AdminPodDeploy = () => {
   const [availableTemplates, setAvailableTemplates] = useState<Template[]>([]);
   const [showDescription, setShowDescription] = useState(false);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [pricing, setPricing] = useState<PricingData | null>(null);
+  const [gpuOptions, setGpuOptions] = useState<GpuOption[]>([]);
+  const [loadingPricing, setLoadingPricing] = useState(true);
   const markdownContent = selectedTemplate?.description || "Sin descripción";
   const navigate = useNavigate();
   const { user } = useAuth();
   
   const form = useForm();
+
+  // Cargar precios al montar el componente
+  useEffect(() => {
+    loadPricing();
+  }, []);
+
+  const loadPricing = async () => {
+    try {
+      setLoadingPricing(true);
+      const pricingData = await pricingService.getPricing();
+      setPricing(pricingData);
+      
+      // Convertir a formato GpuOption
+      const options = pricingService.convertToGpuOptions(pricingData);
+      setGpuOptions(options);
+    } catch (error) {
+      console.error('Error loading pricing:', error);
+      // Fallback a opciones por defecto
+      setGpuOptions([
+        {
+          id: "rtx-4050",
+          name: "NVIDIA RTX 4050",
+          available: true,
+          price: 2.50,
+          vram: "6GB",
+          cores: 2560,
+          image: "gpu-4050.jpg"
+        },
+        {
+          id: "rtx-4080",
+          name: "NVIDIA RTX 4080",
+          available: false,
+          price: 4.99,
+          vram: "16GB",
+          cores: 9728,
+          image: "gpu-4080.jpg"
+        },
+        {
+          id: "rtx-4090",
+          name: "NVIDIA RTX 4090",
+          available: false,
+          price: 8.99,
+          vram: "24GB",
+          cores: 16384,
+          image: "gpu-4090.jpg"
+        }
+      ]);
+    } finally {
+      setLoadingPricing(false);
+    }
+  };
 
   const handleTemplateSelect = useCallback((template: Template) => {
     setSelectedTemplate(template);
@@ -173,8 +200,9 @@ const AdminPodDeploy = () => {
     }
   };
 
-  const containerDiskPrice = 0.05 * containerDiskSize;
-  const volumeDiskPrice = 0.1 * volumeDiskSize;
+  // Calcular precios usando la configuración actual
+  const containerDiskPrice = pricing ? pricing.storage.containerDisk.price * containerDiskSize : 0.05 * containerDiskSize;
+  const volumeDiskPrice = pricing ? pricing.storage.volumeDisk.price * volumeDiskSize : 0.1 * volumeDiskSize;
   const gpuPrice = selectedGpu?.price || 0;
   const totalPrice = gpuPrice + containerDiskPrice + volumeDiskPrice;
 
@@ -206,8 +234,14 @@ const AdminPodDeploy = () => {
           <CardTitle>Selecciona una GPU</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {gpuOptions.map((gpu) => (
+          {loadingPricing ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+              <span className="ml-2">Cargando opciones de GPU...</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {gpuOptions.map((gpu) => (
               <Card 
                 key={gpu.id} 
                 className={`cursor-pointer border-2 transition-all ${selectedGpu?.id === gpu.id ? 'border-primary' : 'border-border'} 
@@ -240,7 +274,8 @@ const AdminPodDeploy = () => {
                 </CardContent>
               </Card>
             ))}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
       

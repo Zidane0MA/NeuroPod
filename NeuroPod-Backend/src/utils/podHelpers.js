@@ -89,25 +89,50 @@ function validatePorts(ports) {
 }
 
 /**
- * Calcula el costo estimado de un pod
+ * Calcula el costo estimado de un pod (DEPRECATED)
  * @param {Object} config - Configuración del pod
  * @returns {number} - Costo en euros
+ * @deprecated Usar Pricing.calculateCost() en su lugar
  */
 function calculateEstimatedCost(config) {
-  const gpuPrices = {
-    'rtx-4050': parseFloat(process.env.GPU_RTX4050_PRICE) || 0.5,
-    'rtx-4080': parseFloat(process.env.GPU_RTX4080_PRICE) || 1.5,
-    'rtx-4090': parseFloat(process.env.GPU_RTX4090_PRICE) || 2.5
+  // Valores por defecto para compatibilidad
+  const defaultGpuPrices = {
+    'rtx-4050': 2.50,
+    'rtx-4080': 4.99,
+    'rtx-4090': 8.99
   };
   
-  const containerDiskPrice = parseFloat(process.env.CONTAINER_DISK_PRICE) || 0.05;
-  const volumeDiskPrice = parseFloat(process.env.VOLUME_DISK_PRICE) || 0.10;
+  const defaultContainerDiskPrice = 0.05;
+  const defaultVolumeDiskPrice = 0.10;
   
-  const gpuCost = gpuPrices[config.gpu] || 0.3;
-  const containerCost = (config.containerDiskSize || 0) * containerDiskPrice;
-  const volumeCost = (config.volumeDiskSize || 0) * volumeDiskPrice;
+  const gpuCost = defaultGpuPrices[config.gpu] || 2.50;
+  const containerCost = (config.containerDiskSize || 0) * defaultContainerDiskPrice;
+  const volumeCost = (config.volumeDiskSize || 0) * defaultVolumeDiskPrice;
   
   return gpuCost + containerCost + volumeCost;
+}
+
+/**
+ * Calcula el costo estimado usando el nuevo sistema de precios
+ * @param {Object} config - Configuración del pod
+ * @returns {Promise<Object>} - Objeto con desglose de costos
+ */
+async function calculateEstimatedCostAsync(config) {
+  try {
+    const Pricing = require('../models/Pricing.model');
+    const pricing = await Pricing.getCurrentPricing();
+    return pricing.calculateCost(config);
+  } catch (error) {
+    console.warn('Error calculating cost with new system, using fallback:', error.message);
+    // Fallback al método anterior
+    const total = calculateEstimatedCost(config);
+    return {
+      gpu: config.gpu ? (total - (config.containerDiskSize || 0) * 0.05 - (config.volumeDiskSize || 0) * 0.10) : 0,
+      containerDisk: (config.containerDiskSize || 0) * 0.05,
+      volumeDisk: (config.volumeDiskSize || 0) * 0.10,
+      total: total
+    };
+  }
 }
 
 /**
@@ -243,7 +268,8 @@ module.exports = {
   generateSecureSubdomain,
   validatePodName,
   validatePorts,
-  calculateEstimatedCost,
+  calculateEstimatedCost, // DEPRECATED
+  calculateEstimatedCostAsync, // NUEVO
   formatUptime,
   generatePodId,
   sanitizeKubernamesName,

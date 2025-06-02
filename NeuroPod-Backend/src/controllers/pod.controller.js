@@ -328,9 +328,9 @@ async function determinePodOwner(body, currentUser) {
 
 async function validateUserBalance(podOwner, body) {
   if (podOwner.role === "client") {
-    const estimatedCost = calculatePodCost(body);
+    const estimatedCost = await calculatePodCostAsync(body);
     if (podOwner.balance < estimatedCost) {
-      const error = new Error(`Saldo insuficiente. Requerido: €${estimatedCost}, Disponible: €${podOwner.balance}`);
+      const error = new Error(`Saldo insuficiente. Requerido: €${estimatedCost.toFixed(2)}, Disponible: €${podOwner.balance.toFixed(2)}`);
       error.statusCode = 400;
       throw error;
     }
@@ -363,7 +363,7 @@ async function createPodRecord(body, podOwner, currentUser, finalDockerImage, ht
 
 async function deductBalanceIfClient(podOwner, body) {
   if (podOwner.role === 'client') {
-    const cost = calculatePodCost(body);
+    const cost = await calculatePodCostAsync(body);
     await User.findByIdAndUpdate(podOwner._id, { 
       $inc: { balance: -cost } 
     });
@@ -606,16 +606,31 @@ function createServiceObject(port, serviceName, isCustom) {
   };
 }
 
+// Función para calcular costo de pod (DEPRECATED)
 function calculatePodCost(podConfig) {
-  // Obtener precios desde variables de entorno o usar valores por defecto
-  const gpuCosts = {
-    'rtx-4050': parseFloat(process.env.GPU_RTX4050_PRICE) || 0.5,
-    'rtx-4080': parseFloat(process.env.GPU_RTX4080_PRICE) || 1.5,
-    'rtx-4090': parseFloat(process.env.GPU_RTX4090_PRICE) || 2.5
+  // Valores por defecto para compatibilidad
+  const defaultGpuCosts = {
+    'rtx-4050': 2.50,
+    'rtx-4080': 4.99,
+    'rtx-4090': 8.99
   };
   
-  const baseCost = gpuCosts[podConfig.gpu] || 0.3;
-  const storageCost = (podConfig.containerDiskSize + podConfig.volumeDiskSize) * 0.01;
+  const baseCost = defaultGpuCosts[podConfig.gpu] || 2.50;
+  const containerCost = podConfig.containerDiskSize * 0.05;
+  const volumeCost = podConfig.volumeDiskSize * 0.10;
   
-  return baseCost + storageCost;
+  return baseCost + containerCost + volumeCost;
+}
+
+// Función asíncrona para calcular costo usando el nuevo sistema
+async function calculatePodCostAsync(podConfig) {
+  try {
+    const Pricing = require('../models/Pricing.model');
+    const pricing = await Pricing.getCurrentPricing();
+    const costs = pricing.calculateCost(podConfig);
+    return costs.total;
+  } catch (error) {
+    console.warn('Error calculating pod cost with new system, using fallback:', error.message);
+    return calculatePodCost(podConfig);
+  }
 }

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const { seedTemplates } = require('./templates.seeder');
+const { seedPricing } = require('./pricing.seeder');
 
 // Cargar variables de entorno
 dotenv.config();
@@ -12,6 +13,7 @@ const runSeeders = async () => {
     console.log('✅ Conectado a MongoDB');
 
     console.log('🌱 Ejecutando seeders...');
+    await seedPricing();
     await seedTemplates();
     
     console.log('✅ Seeders ejecutados exitosamente');

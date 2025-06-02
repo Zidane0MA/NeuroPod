@@ -1,6 +1,13 @@
-# Neuropod
+## 📋 Información del Proyecto
 
-Neuropod es una plataforma para ejecutar contenedores Docker a demanda (como ComfyUI o Ubuntu) a través de una interfaz web, usando autenticación con Google y subdominios únicos para cada sesión de usuario.
+**Nombre del Proyecto**: Neuropod  
+**Dominio**: neuropod.online  
+**Objetivo**: Plataforma para gestionar y ejecutar pods a través de una interfaz web con autenticación de usuarios. ComfyUI está disponible como una plantilla predefinida, al igual que Ubuntu, pero cualquier imagen Docker podrá ejecutarse manualmente.   
+**Tecnologías principales**: MongoDB, Node.js, React, Kubernetes, Minikube, Docker, NGINX Ingress, Cloudflare Tunnel.
+**Base de datos**: `plataforma` (gestionada con mongosh)  
+**Modelo de negocio**: Los usuarios tienen un saldo inicial de 10€, que gastan al ejecutar contenedores. El administrador tiene saldo infinito y puede configurar precios asi como asignar saldo a los usuarios, no esta implementado un sistema de pago.  
+
+Neuropod es una plataforma que permitirá a los usuarios iniciar sesión, gestionar y ejecutar múltiples contenedores Docker a través de una interfaz web intuitiva. Cada contenedor será accesible mediante su propio subdominio dinámico (ej. `comfy-fr5gr3-4567.neuropod.online`). El sistema gestionará la autenticación, sesiones, y desplegará los contenedores necesarios en Kubernetes de forma dinámica según las peticiones de los usuarios. Los contenedores tendrán un directorio `/workspace` que persistirá entre sesiones para almacenar datos del usuario.
 
 ## 🌐 Dominio
 
@@ -44,14 +51,6 @@ Neuropod es una plataforma para ejecutar contenedores Docker a demanda (como Com
 ## 🧱 Arquitectura
 
 ```
-Usuario → Cloudflare Tunnel → NGINX Ingress → Pods dinámicos (ComfyUI, Ubuntu)
-                         ↘
-                   api.neuropod.online → Backend Node.js
-                         ↘
-                   app.neuropod.online → Frontend React
-                         ↘
-                         MongoDB
-
 Cloudflare (HTTPS) → Tunnel (HTTPS) → NGINX (termina TLS) → pod (HTTP)
 ```
 
@@ -130,26 +129,32 @@ flowchart LR
 ## 🛠️ Instalación local
 
 1. Instalar node.js
-   ```powershell
-   # Para permitir la ejecución de scripts en PowerShell abrimos como administrador la terminal
-  
-   # Cambiar Política PowerShell
-   Set-ExecutionPolicy RemoteSigned 
-   
-   # Abrimos el archivo Microsoft.PowerShell_profile.ps1 e ingresamos:
-   notepad $PROFILE
-    fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression
+    ```powershell
+    # Opcion 1: Instalar fnm (Gestor de versiones de node.js)
+    # Ejecutar PowerShell como administrador y cambiar politica
+    Set-ExecutionPolicy RemoteSigned
 
-   # Instalar fnm (Gestor de versiones)
-   winget install Schniz.fnm 
-   # Instalar node "v22.15.0"
-   fnm install 22 
-   # Usar la versión "v22.15.0"
-   fnm use 22
-   # Comprobar versiones
-   node -v 
-   npm -v
-   ```
+    # Crear archivo Microsoft.PowerShell_profile.ps1 en ruta $PROFILE
+    notepad $PROFILE
+    # Ingresa:
+      fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression 
+
+    # Instalación fnm (Powershell)
+    winget install Schniz.fnm
+    fnm install 22   
+    fnm use 22
+
+    # Verificar instalaciones (en PowerShell)
+    node --version
+    npm --version
+
+    # Opcion 2: Instalar Node.js desde el instalador oficial
+    # Descarga desde https://nodejs.org/en/download/
+
+    # Instalar MongoDB Community Edition para Windows
+    # Descarga desde https://www.mongodb.com/try/download/community
+    # MongoDB debe estar disponible en C:\Program Files\MongoDB\Server\[versión]\bin\mongod.exe
+    ```
 
 2. Completar las configuraciones de las guias.
    > **Nota**: Ver archivo [`Guia Cloudflare`](./Documentacion/GUIA_COMPLETA_CLOUDFLARE_TUNNEL_HECHO.md) y [`Guia Minikube`](./Documentacion/GUIA_MINIKUBE_CONFIGURACION_HECHO.md).

@@ -1,4 +1,5 @@
-# Este script de PowerShell sirve para comprobar los manifestos de Kubernetes y verificar que todo está funcionando correctamente.
+# Este script de PowerShell sirve para comprobar los manifestos de Kubernetes arrancados de forma manual (Caso_template_sin_8888-verdadero.yaml)
+# y verificar que todo está correctamente configurado en un entorno de Minikube con GPU.
 # Requiere que tengas iniciado los servicios de Minikube y cloudflared tunnel.
 
 Write-Host "=== Verificando que todo funciona correctamente ===" -ForegroundColor Green

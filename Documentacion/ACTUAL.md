@@ -96,14 +96,14 @@ POST /api/status/calculate-cost  // Calcular costos estimados
 
 ```
 NeuroPod/
-├── NeuroPod-Frontend/           🟡 95% COMPLETO
+├── NeuroPod-Frontend/           🟡 95% COMPLETO falta precios de gpu y gestion de usuarios y saldo.
 │   ├── src/
-│   │   ├── components/          ✅ Componentes UI completos
-│   │   ├── pages/              🟡 Todas las páginas implementadas ()
-│   │   ├── services/           ✅ API services con simulación
-│   │   ├── types/              ✅ TypeScript types definidos
-│   │   └── utils/              ✅ Utilidades y simulación
-│   └── package.json            ✅ Dependencias instaladas
+│   │   ├── components/         🟡 Componentes UI completos
+│   │   ├── pages/              🟡 Todas las páginas implementadas
+│   │   ├── services/           🟡 API services con simulación
+│   │   ├── types/              🟡 TypeScript types definidos
+│   │   └── utils/              🟡 Utilidades y simulación
+│   └── package.json            🟡 Dependencias instaladas
 │
 ├── NeuroPod-Backend/            🟡 85% COMPLETO
 │   ├── src/
@@ -207,13 +207,13 @@ cloudflared.exe tunnel run neuropod-tunnel
 | Funcionalidad | Frontend | Backend | Integración | Estado |
 |---------------|----------|---------|-------------|---------|
 | **Autenticación Google** | ✅ | ✅ | ✅ | Funcional |
-| **Gestión Usuarios** | ✅ | 🔄 | ❌ | Simulado |
+| **Gestión Usuarios** | 🔄 | 🔄 | ❌ | Simulado |
 | **Sistema Templates** | ✅ | ✅ | ✅ | Funcional |
-| **Gestión Pods** | ✅ | 🔄 | ❌ | Simulado |
-| **Kubernetes Deploy** | ✅ | ❌ | ❌ | Manual |
-| **Subdominios Dinámicos** | ✅ | ❌ | ❌ | Configurado |
-| **Sistema Precios** | ✅ | ❌ | ❌ | Solo UI |
-| **WebSockets** | ✅ | ❌ | ❌ | Preparado |
+| **Gestión Pods** | ✅ | 🔄 | 🔄 | Simulado |
+| **Kubernetes Deploy** | ✅ | 🔄 | 🔄 | Manual |
+| **Subdominios Dinámicos** | ✅ | 🔄 | 🔄 | Configurado |
+| **Sistema Precios** | ✅ | 🔄 | ❌ | Solo UI |
+| **WebSockets** | ✅ | 🔄 | ❌ | Preparado |
 
 ### **Leyenda**:
 - ✅ **Completado y funcional**

@@ -1,3 +1,46 @@
+# =============================================================================
+# NOTA SOBRE NOMENCLATURA AUTOMÁTICA (usada por el backend de NeuroPod):
+#
+# El backend genera los nombres de los recursos de Kubernetes así:
+#
+# - Pod:
+#     ${podName}-${userHash}
+# - PVC:
+#     workspace-${userHash}
+# - Service (por puerto):
+#     ${podName}-${userHash}-${port}-service
+# - Ingress (por puerto):
+#     ${podName}-${userHash}-${port}-ingress
+#
+# Donde:
+#   - podName: nombre base del pod (ej: comfyui-gpu-test)
+#   - userHash: hash único del usuario (ej: 5vrg43)
+#   - port: puerto expuesto (ej: 8188)
+#
+# Ejemplo real:
+#   Pod:      comfyui-gpu-test-5vrg43
+#   PVC:      workspace-5vrg43
+#   Service:  comfyui-gpu-test-5vrg43-8188-service
+#   Ingress:  comfyui-gpu-test-5vrg43-8188-ingress
+#
+# Así se garantiza unicidad y trazabilidad por usuario y recurso.
+# -----------------------------------------------------------------------------
+# Cómo se genera la URL pública de acceso (subdominio):
+#
+#   ${safePodName}-${userHash}-${port}-${randomSuffix}.neuropod.online
+#
+# Donde:
+#   - safePodName: primeros 10 caracteres del podName, solo minúsculas/números/guiones
+#   - userHash: hash único del usuario (8 caracteres)
+#   - port: puerto expuesto
+#   - randomSuffix: sufijo aleatorio de 8 caracteres hex
+#
+# Ejemplo real:
+#   comfyui-gp-5vrg43-8188-a1b2c3d4.neuropod.online
+#
+# Esto garantiza unicidad, seguridad y evita colisiones de subdominios.
+# =============================================================================
+
 # Pod de prueba ComfyUI con GPU y PVC
 apiVersion: v1
 kind: Pod
@@ -23,9 +66,6 @@ spec:
         nvidia.com/gpu: "1"
         memory: 4Gi
         cpu: 2
-    env:
-    - name: CLI_ARGS
-      value: "--listen 0.0.0.0 --port 8188"
     volumeMounts:
     - name: workspace
       mountPath: /workspace
@@ -44,9 +84,6 @@ spec:
       ln -sf /workspace/models /app/models
       ln -sf /workspace/output /app/output
       ln -sf /workspace/input /app/input
-
-      # Iniciar ComfyUI
-      cd /app && python main.py --listen 0.0.0.0 --port 8188
   volumes:
   - name: workspace
     persistentVolumeClaim:
@@ -70,25 +107,27 @@ spec:
       storage: 50Gi
 
 ---
-# Service para ComfyUI
+# Service para comfyui-gpu-test
 apiVersion: v1
 kind: Service
 metadata:
   name: comfyui-gpu-test-service
   labels:
     app: comfyui-test
+    user: test-user
 spec:
   selector:
     app: comfyui-test
+    user: test-user
   ports:
-  - port: 8188
+  - name: comfyui-web
+    port: 8188
     targetPort: 8188
     protocol: TCP
-    name: comfyui
   type: ClusterIP
 
 ---
-# Ingress para ComfyUI
+# Ingress para comfyui-gpu-test
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

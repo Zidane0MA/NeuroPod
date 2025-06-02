@@ -1,7 +1,8 @@
 # =============================================================================
-# EJEMPLO: Pod con captura automática de token de Jupyter
-# CASO: Template sin puerto 8888 y casilla Jupyter Lab
+# CASO 1: Imagen CON Python pero SIN Jupyter (ej: ComfyUI)
 # =============================================================================
+
+# Pod de prueba ComfyUI con GPU y PVC + integración Jupyter Lab
 apiVersion: v1
 kind: Pod
 metadata:
@@ -36,11 +37,17 @@ spec:
     command: ["/bin/bash", "-c"]
     args:
     - |
-      # Configurar workspace
-      mkdir -p /workspace/{models,output,input,notebooks}
-      ln -sf /workspace/models /app/ComfyUI/models
-      ln -sf /workspace/output /app/ComfyUI/output
-      ln -sf /workspace/input /app/ComfyUI/input
+      # Crear estructura de directorios en el PVC
+      mkdir -p /workspace/models/checkpoints
+      mkdir -p /workspace/models/loras  
+      mkdir -p /workspace/models/vae
+      mkdir -p /workspace/output
+      mkdir -p /workspace/input
+
+      # Crear enlaces simbólicos para que ComfyUI use el PVC
+      ln -sf /workspace/models /app/models
+      ln -sf /workspace/output /app/output
+      ln -sf /workspace/input /app/input
       
       # Instalar Jupyter Lab
       pip install jupyterlab ipywidgets
@@ -109,100 +116,33 @@ spec:
     emptyDir: {}
 
 ---
-
+# PVC específico para este pod
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: jupyter-token-pvc
-spec:
-  accessModes: ["ReadWriteOnce"]
-  storageClassName: standard
-  resources:
-    requests:
-      storage: 20Gi
-
----
-
-# =============================================================================
-# CASO 2: Imagen CON Python pero SIN Jupyter (ej: ComfyUI)
-# =============================================================================
-apiVersion: v1
-kind: Pod
-metadata:
-  name: comfyui-jupyter-pod
   labels:
-    app: comfyui-jupyter
+    app: jupyter-token
     user: test-user
 spec:
-  restartPolicy: Never
-  containers:
-  - name: comfyui-jupyter
-    image: zhangp365/comfyui
-    ports:
-    - containerPort: 8188
-      name: comfyui
-    - containerPort: 8888
-      name: jupyter
-    resources:
-      limits:
-        nvidia.com/gpu: "1"
-        memory: 8Gi
-        cpu: 4
-      requests:
-        nvidia.com/gpu: "1"
-        memory: 4Gi
-        cpu: 2
-    volumeMounts:
-    - name: workspace
-      mountPath: /workspace
-    # Python disponible, instalar Jupyter
-    command: ["/bin/bash", "-c"]
-    args:
-    - |
-      # Configurar workspace
-      mkdir -p /workspace/{models,output,input,notebooks}
-      ln -sf /workspace/models /app/ComfyUI/models
-      ln -sf /workspace/output /app/ComfyUI/output
-      ln -sf /workspace/input /app/ComfyUI/input
-      
-      # Instalar Jupyter Lab (Python ya disponible)
-      pip install jupyterlab ipywidgets
-      
-      # Iniciar Jupyter Lab
-      cd /workspace
-      jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root &
-      
-      # Iniciar ComfyUI
-      cd /app/ComfyUI && python main.py --listen 0.0.0.0 --port 8188 &
-      
-      # Mantener contenedor vivo
-      wait
-  volumes:
-  - name: workspace
-    persistentVolumeClaim:
-      claimName: comfyui-jupyter-pvc
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: comfyui-jupyter-pvc
-spec:
-  accessModes: ["ReadWriteOnce"]
+  accessModes:
+    - ReadWriteOnce
   storageClassName: standard
   resources:
     requests:
       storage: 50Gi
----
+
+# Service para jupyter-token
 apiVersion: v1
 kind: Service
 metadata:
-  name: comfyui-jupyter-service
+  name: jupyter-token-capture-service
   labels:
-    app: comfyui-jupyter
+    app: jupyter-token
     user: test-user
 spec:
   selector:
-    app: comfyui-jupyter
+    app: jupyter-token
     user: test-user
   ports:
   - name: comfyui
@@ -214,3 +154,123 @@ spec:
     targetPort: 8888
     protocol: TCP
   type: ClusterIP
+
+# Ingress para jupyter-token
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jupyter-token-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/keep-alive: "75"
+    nginx.ingress.kubernetes.io/keep-alive-requests: "100"
+    # Headers estándar para WebSockets
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+spec:
+  ingressClassName: neuropod-nginx
+  tls:
+  - hosts:
+    - jupyter-token-usr123-8888.neuropod.online
+    - comfyui-token-usr123-8188.neuropod.online
+    secretName: neuropod-tls
+  rules:
+  # ComfyUI
+  - host: comfyui-token-usr123-8188.neuropod.online
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: jupyter-token-capture-service
+            port:
+              number: 8188
+  # Jupyter
+  - host: jupyter-token-usr123-8888.neuropod.online
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: jupyter-token-capture-service
+            port:
+              number: 8888
+---
+
+# =============================================================================
+# CASO 2: Imagen SIN Python y SIN Jupyter (ej: Ubuntu base, Alpine, etc.)
+# =============================================================================
+
+# Pod de prueba Ubuntu base con GPU y PVC + integración Jupyter Lab
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu-jupyter-pod
+  labels:
+    app: ubuntu-jupyter
+    user: test-user
+spec:
+  restartPolicy: Never
+  containers:
+  - name: ubuntu-jupyter
+    image: ubuntu:22.04
+    ports:
+    - containerPort: 8888
+      name: jupyter
+    - containerPort: 3000
+      name: webapp
+    volumeMounts:
+    - name: workspace
+      mountPath: /workspace
+    # Sin Python, instalación completa
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      # Actualizar sistema e instalar dependencias completas
+      apt-get update && apt-get install -y \
+        python3 \
+        python3-pip \
+        python3-venv \
+        nodejs \
+        npm \
+        curl \
+        wget \
+        git
+      
+      # Configurar workspace
+      mkdir -p /workspace/notebooks
+      cd /workspace
+      
+      # Instalar Jupyter Lab
+      pip3 install jupyterlab ipywidgets pandas numpy matplotlib
+      
+      # Iniciar Jupyter Lab
+      jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root &
+      
+      # Simular aplicación web adicional (Node.js)
+      echo 'const http = require("http"); http.createServer((req,res) => { res.writeHead(200, {"Content-Type": "text/html"}); res.end("<h1>Custom Web App</h1>"); }).listen(3000, "0.0.0.0");' > app.js
+      node app.js &
+      
+      # Mantener contenedor vivo
+      wait
+  volumes:
+  - name: workspace
+    persistentVolumeClaim:
+      claimName: ubuntu-jupyter-pvc
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ubuntu-jupyter-pvc
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 30Gi

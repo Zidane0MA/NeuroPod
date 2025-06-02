@@ -199,15 +199,38 @@ El frontend está preparado para comunicarse con el backend a través de:
 ### **1. API REST** (`api.neuropod.online`)
 ```typescript
 // Endpoints implementados en el frontend
-GET    /api/pods                    # Listar pods del usuario
+// --- Autenticación ---
+POST   /api/auth/google             # Login con Google OAuth2
+POST   /api/auth/mock-login         # Login simulado (desarrollo)
+GET    /api/auth/verify             # Verificar token y obtener usuario
+POST   /api/auth/logout             # Cerrar sesión
+
+// --- Pods ---
+GET    /api/pods                    # Listar pods del usuario actual
 GET    /api/pods?userEmail=X        # Buscar pods por usuario (admin)
-GET    /api/pods/:id/connections    # Obtener servicios del pod
-GET    /api/pods/:id/logs          # Obtener logs del pod
-POST   /api/pods/:id/start         # Iniciar pod
-POST   /api/pods/:id/stop          # Detener pod
-DELETE /api/pods/:id               # Eliminar pod
-GET    /api/templates              # Listar templates
-POST   /api/templates              # Crear template
+POST   /api/pods                    # Crear nuevo pod
+GET    /api/pods/:id/connections    # Obtener servicios/conexiones del pod
+GET    /api/pods/:id/logs           # Obtener logs del pod
+POST   /api/pods/:id/start          # Iniciar pod
+POST   /api/pods/:id/stop           # Detener pod
+DELETE /api/pods/:id                # Eliminar pod
+
+// --- Templates ---
+GET    /api/templates               # Listar templates
+POST   /api/templates               # Crear template
+GET    /api/templates/:id           # Detalles de template
+PUT    /api/templates/:id           # Actualizar template
+DELETE /api/templates/:id           # Eliminar template
+
+// --- Estado del sistema ---
+GET    /api/status/public           # Estado público de la API
+GET    /api/status                  # Estado detallado (admin)
+GET    /api/status/pricing          # Configuración de precios (FALTA IMPLEMENTAR)
+POST   /api/status/calculate-cost   # Calcular costo estimado (FALTA IMPLEMENTAR)
+
+// --- Usuarios (admin) ---
+GET    /api/auth/users              # Listar usuarios
+POST   /api/auth/users/balance      # Actualizar saldo de usuario
 ```
 
 ### **2. WebSockets** (preparado)
@@ -232,14 +255,14 @@ if (backend_unavailable) {
 ## 🛠️ Desarrollo Local
 
 ### Requisitos
-- Node.js v16 o superior
+- Node.js v22 o superior
 - npm
 
 ### Configuración
 1. **Clona el repositorio:**
    ```bash
-   git clone https://github.com/tu-usuario/neuropod-frontend.git
-   cd neuropod-frontend
+   git clone https://github.com/Zidane0MA/NeuroPod.git
+   cd NeuroPod-Frontend
    ```
 
 2. **Instala las dependencias:**

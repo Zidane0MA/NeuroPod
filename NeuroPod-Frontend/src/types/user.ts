@@ -9,5 +9,4 @@ export interface User {
   balance: number;
   status: 'online' | 'offline';
   role?: 'admin' | 'client';
-  salary?: number; // Adding salary field
 }

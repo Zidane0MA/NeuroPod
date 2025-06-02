@@ -779,7 +779,23 @@ Authorization: Bearer <token>
 
 **Casos de uso**:
 - Mostrar precios en página de deploy
+- Mostrar precios en pagina /pricing (no necesitaria autorizacion)
 - Calcular costos estimados
+
+---
+
+### **POST** `/api/status/pricing`
+**Descripción**: Configuración de precios
+
+**Headers requeridos**:
+```
+Authorization: Bearer <admin_token>
+```
+
+Verificar con list_allowed_directories las carpetas a las que tienes acceso, tengo un problema con mi backend y el frontend, en mi frontend necesito configurar precios en la pagina /admin/settings (src\pages\admin\Settings.tsx y src\components\admin\settings\PricingSettings.tsx), en esta pagina se deben ver los precios configurados actuales y actualizar los precios, (no planeo darle funcionalidad al boton Free Tier), estas configuraciones de precios se deben ver reflejadas en /pricing (src\pages\Pricing.tsx y src\components\pricing\PricingCards.tsx) y en las paginas /admin/pods/deploy (src\pages\admin\PodDeploy.tsx) y /client/pods/deploy (src\pages\client\PodDeploy.tsx). En mi backend tengo un sistema de obtención de precios por variables de entorno, quiero cambiarlo, que se obtiene de (src\models\Pod.model.js) y se usa en (src\controllers\status.controller.js, src\controllers\pod.controller.js y src\utils\podHelpers.js), tambien tengo unas rutas configuradas en (src\routes\status.routes.js, /pricing y /calculate-cost) cosa que falta adaptar. Tambien he creado un nuevo modelo de precios, aunque es muy basico (src\models\Pricing.model.js).
+
+**Casos de uso**:
+- Configurar precios en pagina /admin/settings
 
 ---
 

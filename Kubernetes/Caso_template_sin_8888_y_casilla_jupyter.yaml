@@ -2,7 +2,7 @@
 # CASO 1: Imagen CON Python pero SIN Jupyter (ej: ComfyUI)
 # =============================================================================
 
-# Pod de prueba ComfyUI con GPU y PVC + integración Jupyter Lab
+# Pod de prueba ComfyUI con GPU y PVC + integración Jupyter Lab + captura automática de token
 apiVersion: v1
 kind: Pod
 metadata:
@@ -37,6 +37,10 @@ spec:
     command: ["/bin/bash", "-c"]
     args:
     - |
+      # Actualizar sistema e instalar dependencias completas
+      apt-get update && apt-get install -y \
+        python3 python3-pip python3-venv curl wget
+
       # Crear estructura de directorios en el PVC
       mkdir -p /workspace/models/checkpoints
       mkdir -p /workspace/models/loras  
@@ -50,9 +54,9 @@ spec:
       ln -sf /workspace/input /app/input
       
       # Instalar Jupyter Lab
-      pip install jupyterlab ipywidgets
-      
-      # MÉTODO 1: Generar token conocido
+      pip install jupyterlab ipywidgets pandas numpy matplotlib
+
+      # Generar token conocido para Jupyter
       echo "Generando token conocido para Jupyter..."
       JUPYTER_TOKEN="neuropod-$(openssl rand -hex 16)"
       echo "Token generado: $JUPYTER_TOKEN"
@@ -82,11 +86,7 @@ spec:
       echo "=== JUPYTER STARTUP LOGS ==="
       jupyter server list || true
       
-      # Iniciar ComfyUI
-      cd /app/ComfyUI && python main.py --listen 0.0.0.0 --port 8188 &
-      COMFYUI_PID=$!
-      
-      # Función para capturar token de logs (método alternativo)
+      # Función para capturar token de logs (backup)
       capture_token_from_logs() {
         echo "Buscando token en logs de Jupyter..."
         timeout 30 bash -c '
@@ -107,7 +107,7 @@ spec:
       capture_token_from_logs &
       
       # Mantener contenedor vivo
-      wait $JUPYTER_PID $COMFYUI_PID
+      wait $JUPYTER_PID
   volumes:
   - name: workspace
     persistentVolumeClaim:
@@ -205,7 +205,7 @@ spec:
 # CASO 2: Imagen SIN Python y SIN Jupyter (ej: Ubuntu base, Alpine, etc.)
 # =============================================================================
 
-# Pod de prueba Ubuntu base con GPU y PVC + integración Jupyter Lab
+# Pod de prueba Ubuntu base con GPU y PVC + integración Jupyter Lab + captura automática de token
 apiVersion: v1
 kind: Pod
 metadata:
@@ -221,46 +221,87 @@ spec:
     ports:
     - containerPort: 8888
       name: jupyter
-    - containerPort: 3000
-      name: webapp
     volumeMounts:
     - name: workspace
       mountPath: /workspace
-    # Sin Python, instalación completa
+    - name: jupyter-config
+      mountPath: /root/.jupyter
     command: ["/bin/bash", "-c"]
     args:
     - |
       # Actualizar sistema e instalar dependencias completas
       apt-get update && apt-get install -y \
-        python3 \
-        python3-pip \
-        python3-venv \
-        nodejs \
-        npm \
-        curl \
-        wget \
-        git
-      
-      # Configurar workspace
+        python3 python3-pip python3-venv curl wget
+
+      # Crear estructura de directorios en el PVC
+      mkdir -p /workspace/models/checkpoints
+      mkdir -p /workspace/models/loras  
+      mkdir -p /workspace/models/vae
+      mkdir -p /workspace/output
+      mkdir -p /workspace/input
       mkdir -p /workspace/notebooks
-      cd /workspace
-      
-      # Instalar Jupyter Lab
+
+      # Instalar Jupyter Lab y librerías útiles
       pip3 install jupyterlab ipywidgets pandas numpy matplotlib
-      
-      # Iniciar Jupyter Lab
-      jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root &
-      
-      # Simular aplicación web adicional (Node.js)
-      echo 'const http = require("http"); http.createServer((req,res) => { res.writeHead(200, {"Content-Type": "text/html"}); res.end("<h1>Custom Web App</h1>"); }).listen(3000, "0.0.0.0");' > app.js
-      node app.js &
-      
+
+      # Generar token conocido para Jupyter
+      echo "Generando token conocido para Jupyter..."
+      JUPYTER_TOKEN="neuropod-$(openssl rand -hex 16)"
+      echo "Token generado: $JUPYTER_TOKEN"
+
+      # Crear configuración de Jupyter con token fijo
+      mkdir -p /root/.jupyter
+      cat > /root/.jupyter/jupyter_lab_config.py << EOF
+      c.ServerApp.token = '$JUPYTER_TOKEN'
+      c.ServerApp.password = ''
+      c.ServerApp.open_browser = False
+      c.ServerApp.ip = '0.0.0.0'
+      c.ServerApp.port = 8888
+      c.ServerApp.allow_root = True
+      c.ServerApp.root_dir = '/workspace'
+      EOF
+
+      # Escribir token a archivo para que el backend lo lea
+      echo "$JUPYTER_TOKEN" > /workspace/.jupyter_token
+
+      # Iniciar Jupyter Lab con configuración
+      cd /workspace
+      jupyter lab &
+      JUPYTER_PID=$!
+
+      # Esperar a que Jupyter inicie y verificar logs
+      sleep 5
+      echo "=== JUPYTER STARTUP LOGS ==="
+      jupyter server list || true
+
+      # Función para capturar token de logs (backup)
+      capture_token_from_logs() {
+        echo "Buscando token en logs de Jupyter..."
+        timeout 30 bash -c '
+          while true; do
+            if jupyter server list 2>/dev/null | grep -o "token=[a-f0-9]*" | head -1 | cut -d= -f2 > /tmp/captured_token.txt; then
+              if [ -s /tmp/captured_token.txt ]; then
+                echo "Token capturado de logs: $(cat /tmp/captured_token.txt)"
+                cp /tmp/captured_token.txt /workspace/.jupyter_token_captured
+                break
+              fi
+            fi
+            sleep 2
+          done
+        '
+      }
+
+      # Ejecutar captura en paralelo (backup)
+      capture_token_from_logs &
+
       # Mantener contenedor vivo
-      wait
+      wait $JUPYTER_PID
   volumes:
   - name: workspace
     persistentVolumeClaim:
       claimName: ubuntu-jupyter-pvc
+  - name: jupyter-config
+    emptyDir: {}
 
 ---
 
@@ -274,3 +315,57 @@ spec:
   resources:
     requests:
       storage: 30Gi
+
+---
+
+# Service para ubuntu-jupyter-pod
+apiVersion: v1
+kind: Service
+metadata:
+  name: ubuntu-jupyter-service
+  labels:
+    app: ubuntu-jupyter
+    user: test-user
+spec:
+  selector:
+    app: ubuntu-jupyter
+    user: test-user
+  ports:
+  - name: jupyter
+    port: 8888
+    targetPort: 8888
+    protocol: TCP
+  type: ClusterIP
+
+---
+
+# Ingress para ubuntu-jupyter-pod
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ubuntu-jupyter-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/keep-alive: "75"
+    nginx.ingress.kubernetes.io/keep-alive-requests: "100"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+spec:
+  ingressClassName: neuropod-nginx
+  tls:
+  - hosts:
+    - ubuntu-jupyter-usr123-8888.neuropod.online
+    secretName: neuropod-tls
+  rules:
+  - host: ubuntu-jupyter-usr123-8888.neuropod.online
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ubuntu-jupyter-service
+            port:
+              number: 8888

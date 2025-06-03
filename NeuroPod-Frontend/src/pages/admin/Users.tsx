@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { UsersSearch } from "@/components/admin/users/UsersSearch";
 import { UsersTable } from "@/components/admin/users/UsersTable";
-// Eliminado UserDetailDialog
 import { UserActionDialog } from "@/components/admin/users/UserActionDialog";
 import { mockUsers, USERS_PER_PAGE } from "@/data/mockUsers";
 import { User } from "@/types/user";

@@ -47,10 +47,9 @@ src/
 │  │  │  ├─ SettingsTabs.tsx
 │  │  │  ├─ SystemSettings.tsx
 │  │  └─ users/
-│  │     ├─ UserActionDialog.tsx
-│  │     ├─ UserDetailDialog.tsx
-│  │     ├─ UsersSearch.tsx
-│  │     └─ UsersTable.tsx
+│  │     ├─ UserActionDialog.tsx    # Modal para acciones de usuario (asignar saldo, roles)
+│  │     ├─ UsersSearch.tsx         # Componente de búsqueda de usuarios
+│  │     └─ UsersTable.tsx          # Tabla de usuarios con paginación
 │  ├─ client/
 │  │  └─ pods/
 │  │     ├─ ClientPodsHeader.tsx

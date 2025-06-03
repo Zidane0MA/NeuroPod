@@ -225,8 +225,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
   - Búsqueda por nombre o correo
   - Filtros (pods activos, conectados) | Boton Limpiar
   - Tabla de usuarios con:
-    - Correo, nombre, resgitro, pods (n/n), saldo, estado (online/offline), Acciones.
-    - Modal de acciones:
+    - Correo, nombre, registro, pods (n/n), saldo, estado (online/offline), Acciones.
+    - Acciones:
       - Modal para asignar saldo
       - Modal para suspender usuario
       - Modal para eliminar usuario

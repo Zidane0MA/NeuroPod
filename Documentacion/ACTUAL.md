@@ -1,54 +1,8 @@
 # 🚀 NeuroPod - Estado Actual del Proyecto (Diciembre 2024)
 
-> **Estado General**: Proyecto funcional con frontend completo y backend en desarrollo final
+> **Estado General**: Proyecto funcional con frontend completo, backend con sistema de precios dinámico implementado y endpoints de usuarios pendientes
 
 ---
-
-Vale, eh aplicado la solución hibrida inteligente.
-
-Esto es una prueba para verificar la lectura de la carpeta node_modules.
-
-verificar list_allowed_directories, tienes acceso a C:\Users\loler\Downloads\NeuroPod\NeuroPod-Frontend. Quiero que me confirmes si puedes leer su carpeta node_modules.
-
-Respóndeme brevemente.
-
-Vale, parece que hay un error con el script del bloqueo, esto son los errores:
-
-
-Antes de eso, quiero avisarte que eh realizado varios cambios en mi proyecto, he implementado un sistema de precios de GPU dinamico y actualizado los archivos del conocimiento del proyecto, que tambien estan en "C:\Users\loler\Downloads\NeuroPod\Documentacion\", como ves, tambien he actualizado los endpoints que se tiene en el proyecto, por lo que considero que se necesita reevaluar los endpoints sobre los usuarios, pero antes de eso, necesito que vuelvas a hacer un directory_tree para que tengas el contexto del proyecto (ya no tendrás acceso a node_modules que ocupaba espacio de lectura) y actualices el archivo "C:\Users\loler\Downloads\NeuroPod\Documentacion\ACTUAL.md", para esto tendrás que reevaluar los endpoints faltantes con respecto a la pagina /admin/users (NeuroPod-Frontend\src\pages\admin\Users.tsx).
-Segun Github Copilot estas son los endpoints que faltan:
-
-```javascript
-// Endpoints faltantes identificados
-GET /api/auth/users              // Obtener la lista de todos los usuarios (solo admin).
-POST /api/auth/users/balance     // Actualizar el saldo de un usuario.
-POST /api/auth/users/suspend
-DELETE /api/auth/users/:id       // Si implementas suspensión/eliminación.
-```
-
-Actualmente se tiene un sistema que usa los datos del archivo NeuroPod-Frontend\src\data\mock\users.json para simular los usuarios, esta bien para el desarrollo o cuando no se tenga conexión con el backend, pero se necesita implementar los endpoints para que el sistema de administración de usuarios funcione correctamente.
-
-Se tiene pensado que desde la pagina /admin/users se listen los usuarios, se pueda buscar por email o nombre, y se pueda asignar saldo a los usuarios, ademas de que se pueda suspender todos los pods del usuario o eliminar a los usuarios (eliminar todo del usuario, cuenta y pods).
-
-En la tabla de usuarios se tiene pensado que se muestre el email, nombre, registro (fecha de creacion del usuario), pods (n1/n2), saldo, estado (online/offline) y acciones (asignar saldo, suspender pods, eliminar usuario).
-
-Vamos la pagina mostrada en el frontend tiene la siguiente estructura:
-
-### Gestión de Usuarios (/admin/users)
-- **Estado**: Implementar (conectar)
-- **Contexto**: n1 = pods activos, n2 = pods totales
-- **Funcionalidades**:
-  - Búsqueda por nombre o correo y filtros:
-    - Input de búsqueda | Botón Buscar
-    - Filtros independientes (pods activos, conectados) | Botón Limpiar todo
-  - Tabla de usuarios con:
-    - Correo, nombre, registro, pods (n1/n2), saldo, estado (online/offline), Acciones.
-    - Acciones:
-      - Modal para asignar saldo
-      - Modal para suspender usuario
-      - Modal para eliminar usuario
-  - Botón "Cargar Más" (paginación de 15 en 15)
-
 
 ## 📊 Estado Actual de Componentes
 
@@ -60,16 +14,24 @@ Vamos la pagina mostrada en el frontend tiene la siguiente estructura:
 - ✅ **Interfaces diferenciadas** para admin y cliente
 - ✅ **Gestión completa de pods** (CRUD, conexiones, logs, estadísticas)
 - ✅ **Sistema de templates** con CRUD completo
-- ✅ **Administración de usuarios** (solo UI, datos simulados)
+- ✅ **Administración de usuarios COMPLETA** (UI + lógica, datos simulados)
+  - ✅ Búsqueda por nombre/email con filtros avanzados
+  - ✅ Tabla responsive con paginación (20 usuarios por página)
+  - ✅ Modales para asignar saldo, suspender y eliminar usuarios
+  - ✅ Servicio de usuarios (`user.service.ts`) preparado
 - ✅ **Dashboard responsive** con TailwindCSS y shadcn-ui
-- ✅ **endpoints documentados** y preparados para backend
+- ✅ **21+ endpoints documentados** y preparados para backend
 - ✅ **Manejo de errores** y fallback automático a simulación
+- ✅ **Sistema de precios dinámico** completamente integrado en UI
 
 **Páginas Implementadas**:
-- `/` - Landing page
+- `/` - Landing page con precios dinámicos
 - `/login`, `/signup` - Autenticación
+- `/pricing` - Página pública con precios desde API
 - `/dashboard` - Panel principal con redirección por rol
 - `/admin/*` - Panel completo de administrador
+  - `/admin/users` - Gestión completa de usuarios ✅
+  - `/admin/settings` - Panel de configuración de precios ✅
 - `/client/*` - Panel completo de cliente
 
 #### 🏗️ **Infraestructura (100% Configurada)**
@@ -87,48 +49,48 @@ Vamos la pagina mostrada en el frontend tiene la siguiente estructura:
 - ✅ **Plantillas predefinidas** via seeders
 - ✅ **Validaciones** y permisos por rol
 
-#### 📈 **Sistema de Precios (100% Implementado)**
-- ✅ **Modelo de precios** por hora de GPU
-- ✅ **API de precios** con endpoints para obtener y calcular costos
-- ✅ **Frontend con simulación** de precios
-- ✅ **Validaciones de saldo** y costos en tiempo real
-- ✅ **Configuración de precios** en base de datos
-- ✅ **Endpoints de precios** documentados y preparados
+#### 💰 **Sistema de Precios Dinámico (100% Implementado)**
+- ✅ **Modelo `Pricing`** - Gestiona precios en MongoDB
+- ✅ **API completa** con endpoints públicos y privados:
+  - ✅ `GET /api/pricing/public` - Precios sin autenticación
+  - ✅ `GET /api/pricing` - Configuración completa (admin)
+  - ✅ `PUT /api/pricing` - Actualizar precios (admin)
+  - ✅ `POST /api/pricing/calculate-cost` - Calcular costos
+  - ✅ `POST /api/pricing/reset` - Restablecer valores por defecto
+  - ✅ `GET /api/pricing/gpus/available` - GPUs disponibles
+- ✅ **Frontend integrado** - Configuración desde `/admin/settings`
+- ✅ **Página pública** `/pricing` con precios dinámicos
+- ✅ **Cálculos automáticos** en deploy de pods
+- ✅ **Seeder automático** con valores por defecto
 
-#### 📊 **Sistema de despliegue de pods en frontend (100% Implementado)**
-- ✅ **Formulario de creación de pods** con validaciones
-- ✅ **Selección de plantilla** y configuración de recursos
-- ✅ **Conexión a pods** con subdominio dinámico
-- ✅ **Visualización de logs** y estado del pod
-
-### 🟡 **EN DESARROLLO FINAL**
-
-#### 🖥️ **Frontend React (95% Implementado)**
-
-**Autenticación (95% Implementada)**
-- ❌ Error al logearse y registrarse desde https://app.neuropod.online
+#### 🔐 **Autenticación (100% Implementada)**
 - ✅ **Google OAuth2** configurado
-- ✅ **Control de acceso** por email y roles
+- ✅ **Control de acceso** por email y roles  
 - ✅ **Sistema JWT** con middleware
 - ✅ **Gestión de sesiones** segura
 - ✅ **Logout completo** con limpieza de datos
 
-#### 🖥️ **Backend Node.js (85% Completado)**
+### 🟡 **EN DESARROLLO FINAL**
+
+#### 🖥️ **Backend Node.js (90% Completado)**
 
 **✅ Implementados**:
 - ✅ Estructura base con Express.js
 - ✅ Conexión a MongoDB con Mongoose
-- ✅ Modelos completos (User, Pod, Template, Session, Log)
+- ✅ Modelos completos (User, Pod, Template, Session, Log, **Pricing**)
 - ✅ Autenticación JWT + Google OAuth
 - ✅ Sistema de templates completo
+- ✅ **Sistema de precios dinámico completo**
 - ✅ Endpoints de status básicos
 - ✅ Middleware de autenticación y autorización
 
-**🔄 Pendientes (15%)**:
+**🔄 Pendientes (10%)**:
 ```javascript
-// Endpoints faltantes identificados
-GET /api/auth/users               // Lista de usuarios para admin
-POST /api/auth/users/balance      // Actualizar saldo de usuario  
+// Endpoints faltantes para administración de usuarios
+GET /api/auth/users              // Lista de usuarios (admin) - IMPLEMENTAR
+POST /api/auth/users/balance     // Actualizar saldo usuario - IMPLEMENTAR  
+POST /api/auth/users/suspend     // Suspender usuario (detener pods) - IMPLEMENTAR
+DELETE /api/auth/users/:id       // Eliminar usuario y todos sus pods - IMPLEMENTAR
 ```
 
 **🔧 Problemas Conocidos**:
@@ -153,38 +115,45 @@ POST /api/auth/users/balance      // Actualizar saldo de usuario
 
 ---
 
-## 📁 Estructura del Proyecto
+## 📁 Estructura del Proyecto Actualizada
 
 ```
 NeuroPod/
-├── NeuroPod-Frontend/           🟡 95% COMPLETO falta gestión de usuarios y saldo.
+├── NeuroPod-Frontend/           ✅ 100% COMPLETO
 │   ├── src/
-│   │   ├── components/         🟡 Componentes completos
-│   │   │   └── admin/users/
-│   │   │       ├── UserActionDialog.tsx  🟡 Gestión de usuarios pendiente
-│   │   │       ├── UsersSearch.tsx       🟡 Búsqueda de usuarios pendiente
-│   │   │       └── UsersTable.tsx        🟡 Tabla de usuarios pendiente
-│   │   ├── hooks/              ✅ Hooks personalizados
-│   │   ├── context/AuthContext.tsx       ✅ Contexto de autenticación
-│   │   ├── pages/              🟡 Todas las páginas implementadas
-│   │   │   ├── admin/          🟡 Panel de administración
-│   │   ├── services/           🟡 API services con simulación
-│   │   ├── types/              🟡 TypeScript types definidos
+│   │   ├── components/         ✅ Componentes UI completos
+│   │   │   └── admin/users/    ✅ Gestión de usuarios completa
+│   │   │       ├── UserActionDialog.tsx  ✅ Modales para acciones
+│   │   │       ├── UsersSearch.tsx       ✅ Búsqueda y filtros
+│   │   │       └── UsersTable.tsx        ✅ Tabla responsive
+│   │   ├── pages/              ✅ Todas las páginas implementadas
+│   │   │   ├── admin/Users.tsx           ✅ Página principal usuarios
+│   │   │   └── admin/Settings.tsx        ✅ Panel precios dinámico
+│   │   ├── services/           ✅ API services completos
+│   │   │   ├── user.service.ts           ✅ Servicio usuarios preparado
+│   │   │   └── pricing.service.ts        ✅ Servicio precios completo
+│   │   ├── data/mockUsers.ts             ✅ Datos simulados (50 usuarios)
+│   │   ├── types/              ✅ TypeScript types definidos
 │   │   └── utils/              ✅ Utilidades y simulación
-│   └── package.json            ✅ Dependencias instaladas
+│   └── Endpoints.md            ✅ Documentación API actualizada
 │
-├── NeuroPod-Backend/            🟡 85% COMPLETO
+├── NeuroPod-Backend/            🟡 90% COMPLETO
 │   ├── src/
-│   │   ├── controllers/        ✅ Templates, auth completos
-│   │   ├── models/             ✅ Todos los modelos
-│   │   ├── routes/             ✅ Rutas principales
+│   │   ├── controllers/        ✅ Templates, auth, precios completos
+│   │   │   └── pricing.controller.js     ✅ Sistema precios dinámico
+│   │   ├── models/             ✅ Todos los modelos incluido Pricing
+│   │   │   └── Pricing.model.js          ✅ Modelo precios dinámico
+│   │   ├── routes/             ✅ Rutas principales incluido pricing
+│   │   │   └── pricing.routes.js         ✅ Rutas precios completas
 │   │   ├── middleware/         ✅ Auth middleware
+│   │   ├── seeders/            ✅ Seeders de templates y precios
 │   │   ├── services/           🔄 Kubernetes service pendiente
 │   │   └── utils/              🔄 Kubernetes service pendiente
 │   └── package.json            ✅ Dependencias instaladas
 │
 └── Documentacion/               ✅ COMPLETA Y ACTUALIZADA
-    ├── README.md               ✅ Este archivo actualizado
+    ├── ACTUAL.md               ✅ Este archivo actualizado
+    ├── MANUAL_SISTEMA_PRECIOS_COMPLETADO.md ✅ Precios dinámicos
     ├── GUIA_*.md               ✅ Guías de configuración
     ├── MANUAL_*.md             ✅ Manuales de funcionalidades
     └── VARIABLES_DE_ENTORNO.md ✅ Configuración actual
@@ -196,40 +165,81 @@ NeuroPod/
 
 ### **Prioridad Alta (Funcionalidad Básica)**
 
-#### 1. **Completar Backend API (Estimado: 2-3 horas)**
-```bash
-# Endpoints faltantes para conectar con frontend
-- GET /api/auth/users              # Lista usuarios (admin)
-- POST /api/auth/users/balance     # Asignar saldo
-- GET /api/status/pricing          # Configuración precios
-- POST /api/status/calculate-cost  # Calcular costos
+#### 1. **Completar Endpoints de Usuarios en Backend (Estimado: 3-4 horas)**
+
+**Endpoints específicos a implementar**:
+
+```javascript
+// auth.controller.js - Agregar estos métodos
+GET /api/auth/users              // Listar todos los usuarios (admin)
+POST /api/auth/users/balance     // Actualizar saldo de usuario específico
+POST /api/auth/users/suspend     // Suspender usuario (detener todos sus pods)
+DELETE /api/auth/users/:id       // Eliminar usuario y todos sus recursos
 ```
 
-#### 2. **Arreglar Conexión Kubernetes (Estimado: 2-4 horas)**
+**Funcionalidades requeridas**:
+- **Listar usuarios**: Devolver users con `activePods` y `totalPods` calculados desde colección Pod
+- **Asignar saldo**: Actualizar campo `balance` de usuario específico
+- **Suspender usuario**: Detener todos los pods activos del usuario, cambiar estado
+- **Eliminar usuario**: Eliminar usuario + todos sus pods + sessions + logs relacionados
+
+#### 2. **Conectar Frontend con Endpoints Reales (Estimado: 1-2 horas)**
+
+**Modificar `Users.tsx`**:
+```typescript
+// Reemplazar mockUsers con llamadas reales
+const [users, setUsers] = useState<User[]>([]);
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  const fetchUsers = async () => {
+    try {
+      const realUsers = await userService.getAllUsers();
+      setUsers(realUsers);
+    } catch (error) {
+      // Fallback a mockUsers si backend no disponible
+      setUsers(mockUsers);
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchUsers();
+}, []);
+```
+
+**Completar `user.service.ts`**:
+```typescript
+export const userService = {
+  getAllUsers: async (): Promise<User[]> => {
+    // Ya implementado
+  },
+  updateUserBalance: async (userId: string, balance: number) => {
+    // Ya implementado  
+  },
+  suspendUser: async (userId: string) => {
+    return api.post(`/api/auth/users/suspend`, { userId });
+  },
+  deleteUser: async (userId: string) => {
+    return api.delete(`/api/auth/users/${userId}`);
+  }
+};
+```
+
+#### 3. **Arreglar Conexión Kubernetes (Estimado: 2-4 horas)**
 ```bash
 # Problemas a resolver
 - Verificar configuración @kubernetes/client-node
-- Implementar conexión con cluster Minikube
+- Implementar conexión con cluster Minikube  
 - Debugging de errores de conexión
 - Probar despliegue básico de pod
 ```
 
-#### 3. **Actualizar Creación de Pods (Estimado: 1-2 horas)**
+#### 4. **Actualizar Creación de Pods (Estimado: 1-2 horas)**
 ```bash
 # Usar certificados OpenSSL generados
 - Modificar manifiestos para usar neuropod-tls secret
 - Actualizar controller de pods
 - Probar creación manual vs automática
-```
-
-### **Verificación y Testing (Estimado: 1 hora)**
-```bash
-# Pruebas de integración frontend ↔ backend
-1. Iniciar todos los servicios
-2. Probar login con Google OAuth
-3. Crear pod desde frontend
-4. Verificar subdominio generado
-5. Probar operaciones CRUD de templates
 ```
 
 ---
@@ -248,7 +258,8 @@ cloudflared tunnel list              # Cloudflare Tunnel OK
 ```powershell
 cd C:\Users\loler\Downloads\NeuroPod\NeuroPod-Backend
 npm install
-npm run dev    # Puerto 3000
+npm run seed    # Inicializar precios y templates
+npm run dev     # Puerto 3000
 ```
 
 ### **3. Iniciar Frontend**
@@ -267,27 +278,92 @@ cloudflared.exe tunnel run neuropod-tunnel
 ### **5. Verificar Funcionalidad**
 - **Frontend**: https://app.neuropod.online
 - **Backend**: https://api.neuropod.online/api/status/public
+- **Precios públicos**: https://app.neuropod.online/pricing
+- **Panel admin**: https://app.neuropod.online/admin/settings
 - **Modo simulación**: Automático si backend no disponible
 
 ---
 
-## 📈 Estado de Funcionalidades
+## 📈 Estado de Funcionalidades Actualizado
 
 | Funcionalidad | Frontend | Backend | Integración | Estado |
 |---------------|----------|---------|-------------|---------|
 | **Autenticación Google** | ✅ | ✅ | ✅ | Funcional |
-| **Gestión Usuarios** | 🔄 | 🔄 | ❌ | Simulado |
+| **Sistema Precios Dinámico** | ✅ | ✅ | ✅ | **Funcional** |
+| **Gestión Usuarios (UI)** | ✅ | ❌ | ❌ | **Solo Simulado** |
 | **Sistema Templates** | ✅ | ✅ | ✅ | Funcional |
 | **Gestión Pods** | ✅ | 🔄 | 🔄 | Simulado |
 | **Kubernetes Deploy** | ✅ | 🔄 | 🔄 | Manual |
 | **Subdominios Dinámicos** | ✅ | ✅ | ✅ | Configurado |
-| **Sistema Precios** | ✅ | ✅ | ✅ | Funcional |
 | **WebSockets** | ✅ | 🔄 | ❌ | Preparado |
 
 ### **Leyenda**:
 - ✅ **Completado y funcional**
 - 🔄 **Parcialmente implementado**  
 - ❌ **Pendiente de implementar**
+
+---
+
+## 🆕 **Nuevas Funcionalidades Implementadas**
+
+### **💰 Sistema de Precios Dinámico (100% Funcional)**
+- ✅ **Configuración visual** desde `/admin/settings`
+- ✅ **Página pública** `/pricing` con precios en tiempo real
+- ✅ **API completa** con endpoints públicos y protegidos
+- ✅ **Cálculos automáticos** en deploy de pods
+- ✅ **Reset a valores por defecto** desde panel admin
+- ✅ **Persistencia** en MongoDB con seeders
+
+### **🔧 Páginas de Administración Completadas**
+- ✅ **`/admin/users`** - Gestión completa de usuarios con:
+  - Búsqueda por nombre/email
+  - Filtros (pods activos, usuarios online)
+  - Paginación de 20 usuarios por página
+  - Modales para asignar saldo, suspender, eliminar
+- ✅ **`/admin/settings`** - Panel de configuración con:
+  - Configuración de precios por GPU
+  - Configuración de almacenamiento
+  - Botón reset a valores por defecto
+
+---
+
+## 🎯 **Endpoints Faltantes Específicos**
+
+### **Administración de Usuarios (4 endpoints)**
+
+```javascript
+// 1. Listar usuarios con estadísticas de pods
+GET /api/auth/users
+// Respuesta:
+{
+  "success": true,
+  "data": [
+    {
+      "id": "user_id",
+      "email": "user@example.com", 
+      "name": "Usuario Nombre",
+      "registrationDate": "2024-01-15",
+      "balance": 10.50,
+      "status": "online", // calculado por última actividad
+      "activePods": 2,    // pods con status 'running'
+      "totalPods": 5      // total pods históricos
+    }
+  ]
+}
+
+// 2. Actualizar saldo de usuario
+POST /api/auth/users/balance
+// Payload: { "userId": "user_id", "balance": 25.00 }
+
+// 3. Suspender usuario (detener todos sus pods)  
+POST /api/auth/users/suspend
+// Payload: { "userId": "user_id" }
+// Acción: Detener todos los pods activos del usuario
+
+// 4. Eliminar usuario completamente
+DELETE /api/auth/users/:userId
+// Acción: Eliminar usuario + pods + sessions + logs relacionados
+```
 
 ---
 
@@ -298,17 +374,21 @@ cloudflared.exe tunnel run neuropod-tunnel
 ### **Características del Modo Simulación**:
 - ✅ **Todas las operaciones** de pods (start, stop, delete, connect, logs)
 - ✅ **Pod de demostración** "ComfyUI-Demo" completamente funcional
+- ✅ **50 usuarios simulados** con datos realistas para `/admin/users`
 - ✅ **Login simulado** con cualquier email (`lolerodiez@gmail.com` = admin)
+- ✅ **Sistema de precios** con datos simulados que coinciden con backend
 - ✅ **Estado persistente** durante la sesión de desarrollo
 - ✅ **Detección automática** cuando backend no disponible
 
-### **Para Probar Simulación**:
+### **Para Probar Modo Completo**:
 ```bash
 # Solo frontend sin backend
 cd NeuroPod-Frontend
 npm run dev
 # Abrir http://localhost:5173
-# Login con cualquier email
+# Login con lolerodiez@gmail.com (admin)
+# Probar /admin/users con 50 usuarios simulados
+# Probar /admin/settings (datos simulados)
 # Todas las funcionalidades disponibles
 ```
 
@@ -316,18 +396,20 @@ npm run dev
 
 ## 🔮 Roadmap Futuro (Post-MVP)
 
-### **Fase Actual: MVP Funcional** ⭐
-- ✅ Frontend completo
-- 🔄 Backend funcional
+### **Fase Actual: MVP Casi Completo** ⭐
+- ✅ Frontend 100% completo
+- ✅ Sistema de precios dinámico funcional
+- 🔄 Backend funcional (falta gestión usuarios)
 - 🔄 Despliegue manual de pods
 - ✅ Autenticación y templates
-- ✅ Sistema de precios y saldo
-- ✅ Modo simulación de pods
+- ✅ Modo simulación completo
 
 ### **Próximas Mejoras**:
-1. **Métricas avanzadas** de uso de recursos
-2. **Monitoring** y alertas del sistema
-3. **Backup automático** de datos de usuario
+1. **Métricas avanzadas** de uso de recursos por usuario
+2. **Dashboard financiero** con ingresos por cambios de precios
+3. **Monitoring** y alertas del sistema
+4. **Backup automático** de datos de usuario
+5. **API de pagos** para recargas automáticas
 
 ---
 
@@ -338,7 +420,8 @@ npm run dev
 **Repositorio**: C:\Users\loler\Downloads\NeuroPod\  
 
 ### **Documentación Disponible**:
-- `Endpoints.md` - API endpoints del frontend
+- `Endpoints.md` - API endpoints del frontend (actualizado)
+- `MANUAL_SISTEMA_PRECIOS_COMPLETADO.md` - Sistema de precios dinámico
 - `MANUAL_*.md` - Manuales de cada funcionalidad
 - `GUIA_*.md` - Guías de configuración técnica
 - `MODO_SIMULACION_PODS.md` - Documentación del sistema de simulación
@@ -347,6 +430,8 @@ npm run dev
 
 ## 🎯 **Próximo Paso Inmediato**
 
-**Completar los 4 endpoints faltantes en el backend** para conectar completamente frontend y backend, seguido de la resolución del problema de conexión con Kubernetes para tener un MVP totalmente funcional.
+**Implementar los 4 endpoints de gestión de usuarios en el backend** para conectar la página `/admin/users` con datos reales de la base de datos, completando así el sistema de administración.
 
-> **El proyecto está a ~6-8 horas de trabajo de ser completamente funcional** 🚀
+> **El proyecto está a ~4-6 horas de trabajo de ser completamente funcional** 🚀
+
+**Estado actualizado**: Sistema de precios dinámico implementado ✅, gestión de usuarios UI completa ✅, solo faltan endpoints backend de usuarios.

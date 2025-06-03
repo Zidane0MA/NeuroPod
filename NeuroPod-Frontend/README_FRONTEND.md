@@ -103,8 +103,9 @@ src/
 │  ├─ api.ts                  # Cliente Axios para API
 │  ├─ auth.service.ts         # Servicios de autenticación
 │  ├─ pod.service.ts          # Servicios de pods con modo simulación
-│  ├─ princing.service.ts     # Servicio de precios para comunicación con API
+│  ├─ pricing.service.ts      # Servicio de precios para comunicación con API
 │  ├─ template.service.ts     # Servicios de templates
+│  ├─ user.service.ts         # Servicios de usuarios (REESCRIBIR SI ES NECESARIO)
 │  └─ websocket.service.ts    # Servicios de websocket
 ├─ types/
 │  ├─ pod.ts                  # Tipos modernos de pods + SimulatedPod
@@ -144,8 +145,7 @@ src/
 
 ### ✅ Implementadas
 
-#### **Sistema de Autenticación** (funciona con http://localhost:5173 pero no con https://app.neuropod.online)
-- ❌ Error al logearse y registrarse desde https://app.neuropod.online
+#### **Sistema de Autenticación**
 - ✅ Google OAuth2 integrado
 - ✅ Login simulado para desarrollo
 - ✅ Control de acceso basado en roles (admin/client)
@@ -287,9 +287,12 @@ if (backend_unavailable) {
    ```
 
 3. **Configura variables de entorno:**
+   Crea un archivo `.env` en la raíz del proyecto con el siguiente contenido o usando el archivo `.env.example` como base:
+   
    ```bash
    # Crea .env.local
    VITE_API_URL=http://localhost:3000
+   VITE_API_URL_HTTPS=https://api.neuropod.com
    VITE_GOOGLE_CLIENT_ID=tu-google-client-id
    ```
 

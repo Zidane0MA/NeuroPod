@@ -136,6 +136,41 @@ src/
 - ✅ PUT `/api/pricing` - Actualizar la configuración de precios (solo administradores)
 - ✅ POST `/api/pricing/reset` - Restablecer los precios a los valores predeterminados (solo administradores)
 
+## 🛠️ Desarrollo Local
+
+### Requisitos
+- Node.js 22 o superior
+- npm
+- MongoDB en ejecución (puedes usar Docker para levantar una instancia)
+- Cluster de Kubernetes levantado y configurado (opcional para desarrollo local)
+
+### Configuración del Entorno
+1. **Clonar el repositorio**:
+   ```bash
+   git clone https://github.com/Zidane0MA/NeuroPod.git
+   cd NeuroPod-Backend
+   ```
+
+2. **Instalar dependencias**:
+   ```bash
+   npm install
+   ```
+
+3. **Configurar el archivo `.env`**:
+   - Crea un archivo `.env` basado en el archivo `.env.example` y configura las variables necesarias, como la conexión a MongoDB, credenciales de OAuth, etc.
+
+4. **Iniciar el servidor**:
+   ```bash
+   npm run dev # Para desarrollo
+   npm start # Para producción
+   ```
+5. **Poblar la base de datos**:
+   ```bash
+   npm run seed
+   ```
+6. **Acceder a la API**:
+   - La API estará disponible en `http://localhost:3000/api`
+
 ## Cambios Pendientes por Implementar
 
 1. **Integración con Kubernetes**:

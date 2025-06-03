@@ -25,24 +25,24 @@ export const PricingCards = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const loadPricing = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        // Usar endpoint público (sin autenticación)
+        const data = await pricingService.getPublicPricing();
+        setPricing(data);
+      } catch (err) {
+        console.error('Error loading pricing:', err);
+        setError('No se pudieron cargar los precios. Mostrando valores por defecto.');
+        // Fallback a valores por defecto
+        setPricing(getDefaultPricing());
+      } finally {
+        setLoading(false);
+      }
+    };
     loadPricing();
   }, []);
-
-  const loadPricing = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await pricingService.getPricing();
-      setPricing(data);
-    } catch (err) {
-      console.error('Error loading pricing:', err);
-      setError('No se pudieron cargar los precios. Mostrando valores por defecto.');
-      // Fallback a valores por defecto
-      setPricing(getDefaultPricing());
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getDefaultPricing = (): PricingData => ({
     gpus: {

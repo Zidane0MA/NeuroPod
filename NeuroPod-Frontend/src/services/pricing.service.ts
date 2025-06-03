@@ -76,7 +76,7 @@ export interface UpdatePricingParams {
 
 export const pricingService = {
   /**
-   * Obtener configuración actual de precios
+   * Obtener configuración actual de precios (autenticado)
    */
   async getPricing(): Promise<PricingData> {
     try {
@@ -84,6 +84,19 @@ export const pricingService = {
       return response.data.data;
     } catch (error) {
       console.error("Error fetching pricing:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Obtener configuración pública de precios (sin autenticación)
+   */
+  async getPublicPricing(): Promise<PricingData> {
+    try {
+      const response = await api.get("/api/pricing/public");
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching public pricing:", error);
       throw error;
     }
   },

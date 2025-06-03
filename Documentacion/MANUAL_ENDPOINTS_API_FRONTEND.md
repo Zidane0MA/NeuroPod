@@ -752,6 +752,79 @@ Authorization: Bearer <token>
 
 ## 💰 Endpoints de Precios
 
+### **GET** `/api/pricing/public`
+**Descripción**: Obtener configuración pública de precios (sin autenticación)
+
+**Headers requeridos**: Ninguno
+
+**Respuesta exitosa**:
+```json
+{
+  "success": true,
+  "data": {
+    "gpus": {
+      "rtx-4050": {
+        "name": "RTX 4050",
+        "price": 2.50,
+        "available": true,
+        "specs": {
+          "memory": "6GB GDDR6",
+          "cores": 2560,
+          "performance": "Entry Level"
+        }
+      },
+      "rtx-4080": {
+        "name": "RTX 4080",
+        "price": 4.99,
+        "available": false,
+        "specs": {
+          "memory": "16GB GDDR6X",
+          "cores": 9728,
+          "performance": "Ultra Performance"
+        }
+      },
+      "rtx-4090": {
+        "name": "RTX 4090",
+        "price": 8.99,
+        "available": false,
+        "specs": {
+          "memory": "24GB GDDR6X",
+          "cores": 16384,
+          "performance": "Flagship"
+        }
+      }
+    },
+    "storage": {
+      "containerDisk": {
+        "price": 0.05,
+        "unit": "€/GB/hora",
+        "description": "Almacenamiento temporal del contenedor"
+      },
+      "volumeDisk": {
+        "price": 0.10,
+        "unit": "€/GB/hora",
+        "description": "Almacenamiento persistente en /workspace"
+      }
+    },
+    "limits": {
+      "containerDiskMax": 100,
+      "volumeDiskMax": 150
+    },
+    "freeTier": {
+      "enabled": true,
+      "initialBalance": 10.00
+    }
+  }
+}
+```
+
+**Casos de uso**:
+- Página pública `/pricing` (sin login requerido)
+- Mostrar precios en página de inicio
+- Información pública para visitantes
+
+---
+
 ### **GET** `/api/pricing`
 **Descripción**: Obtener configuración actual de precios
 
@@ -823,10 +896,10 @@ Authorization: Bearer <token>
 ```
 
 **Casos de uso**:
-- Cargar precios en páginas de deploy
-- Mostrar precios en página `/pricing` 
-- Obtener configuración para cálculos de costos
-- Cargar opciones de GPU disponibles
+- Cargar precios en páginas de deploy (requiere autenticación)
+- Panel de administración `/admin/settings` 
+- Obtener configuración para cálculos de costos (usuarios logueados)
+- Cargar opciones de GPU disponibles (con logs de usuario)
 
 ---
 

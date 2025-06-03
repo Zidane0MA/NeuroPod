@@ -40,6 +40,66 @@ exports.getPricing = async (req, res) => {
   }
 };
 
+// Obtener configuración pública de precios (sin autenticación)
+exports.getPublicPricing = async (req, res) => {
+  try {
+    const pricing = await Pricing.getCurrentPricing();
+    
+    // Formatear la respuesta para la página pública
+    const response = {
+      gpus: {},
+      storage: {
+        containerDisk: {
+          price: pricing.storage.containerDisk.price,
+          unit: pricing.storage.containerDisk.unit,
+          description: pricing.storage.containerDisk.description
+        },
+        volumeDisk: {
+          price: pricing.storage.volumeDisk.price,
+          unit: pricing.storage.volumeDisk.unit,
+          description: pricing.storage.volumeDisk.description
+        }
+      },
+      limits: {
+        containerDiskMax: pricing.limits.containerDiskMax,
+        volumeDiskMax: pricing.limits.volumeDiskMax
+      },
+      freeTier: {
+        enabled: pricing.freeTier.enabled,
+        initialBalance: pricing.freeTier.initialBalance
+      }
+    };
+    
+    // Formatear información de GPUs (solo mostrar las disponibles para página pública)
+    Object.keys(pricing.gpus).forEach(gpuId => {
+      const gpu = pricing.gpus[gpuId];
+      response.gpus[gpuId] = {
+        name: gpuId.toUpperCase().replace('-', ' '),
+        price: gpu.price,
+        available: gpu.available,
+        specs: {
+          memory: gpu.specs.memory,
+          cores: gpu.specs.cores,
+          performance: gpu.specs.performance
+        }
+      };
+    });
+    
+    // No hacer log para endpoint público (sin usuario)
+    
+    res.status(200).json({
+      success: true,
+      data: response
+    });
+  } catch (error) {
+    console.error('Error al obtener precios públicos:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener precios'
+    });
+  }
+};
+
 // Actualizar configuración de precios (solo administradores)
 exports.updatePricing = async (req, res) => {
   try {

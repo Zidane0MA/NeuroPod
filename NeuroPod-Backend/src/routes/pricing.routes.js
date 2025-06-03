@@ -1,6 +1,7 @@
 const express = require('express');
 const { 
   getPricing,
+  getPublicPricing,
   updatePricing,
   calculateCost,
   getGpuInfo,
@@ -11,7 +12,10 @@ const { protect, authorize } = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
-// Rutas públicas/protegidas básicas
+// Ruta pública (sin autenticación)
+router.get('/public', getPublicPricing);
+
+// Rutas protegidas básicas
 router.get('/', protect, getPricing);
 router.post('/calculate-cost', protect, calculateCost);
 router.get('/gpus/available', protect, getAvailableGpus);

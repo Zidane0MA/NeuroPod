@@ -1,8 +1,18 @@
 import axios from 'axios';
 
+const getBaseURL = () => {
+  // Si estamos en el dominio de producción, usar la variable de entorno correspondiente
+  if (window.location.hostname === 'app.neuropod.online') {
+    return import.meta.env.VITE_API_URL_HTTPS;
+  }
+
+  // Fallback a variable de entorno genérica o localhost
+  return import.meta.env.VITE_API_URL || 'http://localhost:3000';
+};
+
 // Crear instancia de Axios con configuración base
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },

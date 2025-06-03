@@ -18,6 +18,10 @@ El frontend de NeuroPod es una aplicación web desarrollada en React que proporc
 ## Estructura del Proyecto (Actualizado)
 
 ```
+.env
+package.json
+README_FRONTEND.md
+vite.config.ts
 src/
 ├─ App.css
 ├─ App.tsx                    # Rutas que se manejan
@@ -38,7 +42,7 @@ src/
 │  │  │  └─ PodStats.tsx            # Estadísticas CPU/memoria/GPU/uptime
 │  │  ├─ settings/
 │  │  │  ├─ LogsSettings.tsx
-│  │  │  ├─ PricingSettings.tsx
+│  │  │  ├─ PricingSettings.tsx     # Panel de administración en /admin/settings
 │  │  │  ├─ ProfileSettings.tsx
 │  │  │  ├─ SettingsTabs.tsx
 │  │  │  ├─ SystemSettings.tsx
@@ -67,7 +71,7 @@ src/
 │  │  ├─ Hero.tsx
 │  │  └─ Navbar.tsx
 │  ├─ pricing/
-│  │  └─ PricingCards.tsx
+│  │  └─ PricingCards.tsx     # Página pública /pricing con precios dinámicos
 │  └─ ui/                     # Componentes UI de shadcn
 ├─ context/
 │  └─ AuthContext.tsx         # Gestión de autenticación
@@ -100,6 +104,7 @@ src/
 │  ├─ api.ts                  # Cliente Axios para API
 │  ├─ auth.service.ts         # Servicios de autenticación
 │  ├─ pod.service.ts          # Servicios de pods con modo simulación
+│  ├─ princing.service.ts     # Servicio de precios para comunicación con API
 │  ├─ template.service.ts     # Servicios de templates
 │  └─ websocket.service.ts    # Servicios de websocket
 ├─ types/
@@ -140,7 +145,8 @@ src/
 
 ### ✅ Implementadas
 
-#### **Sistema de Autenticación**
+#### **Sistema de Autenticación** (funciona con http://localhost:5173 pero no con https://app.neuropod.online)
+- ❌ Error al logearse y registrarse desde https://app.neuropod.online
 - ✅ Google OAuth2 integrado
 - ✅ Login simulado para desarrollo
 - ✅ Control de acceso basado en roles (admin/client)
@@ -174,18 +180,22 @@ src/
 - ✅ **Notificaciones** con feedback de acciones
 - ✅ **Rutas protegidas** por roles
 
+#### **Sistema de precios**
+- ✅ **Servicio de precios** - Comunicación con API
+- ✅ **Panel `/admin/settings`** - Configuración visual de precios
+- ✅ **Página `/pricing`** - Precios dinámicos públicos
+- ✅ **Deploy pages** - Carga precios en tiempo real
+- ✅ **Cálculos automáticos** - Costos actualizados
+
 ### ⏳ Pendientes de Implementar
 
 #### **Integración Backend**
-- ⏳ **API REST completa** (endpoints listos, falta backend)
 - ⏳ **WebSockets** para actualizaciones en tiempo real
 - ⏳ **Sincronización** de estado con base de datos
 
 #### **Funcionalidades Avanzadas**
 - ⏳ **Sistema de saldo** con actualizaciones automáticas
 - ⏳ **Métricas en tiempo real** de uso de recursos
-- ⏳ **Historial de actividad** y logs de auditoría
-- ⏳ **Configuración de precios** desde el frontend
 
 #### **Optimizaciones**
 - ⏳ **Cache inteligente** de datos de pods
@@ -225,12 +235,19 @@ DELETE /api/templates/:id           # Eliminar template
 // --- Estado del sistema ---
 GET    /api/status/public           # Estado público de la API
 GET    /api/status                  # Estado detallado (admin)
-GET    /api/status/pricing          # Configuración de precios (FALTA IMPLEMENTAR)
-POST   /api/status/calculate-cost   # Calcular costo estimado (FALTA IMPLEMENTAR)
 
 // --- Usuarios (admin) ---
-GET    /api/auth/users              # Listar usuarios
-POST   /api/auth/users/balance      # Actualizar saldo de usuario
+GET    /api/pricing                 # Obtener precios de recursos
+GET    /api/pricing/public          # Obtener precios de recursos (publico)
+POST   /api/pricing/calculate-cost  # Calcular costos según los recursos solicitados
+GET    /api/pricing/gpus/available  # Listar las GPUs disponibles
+GET    /api/pricing/gpus/:gpuId     # Obtener información de una GPU
+PUT    /api/pricing                 # Actualizar la configuración de precios (admin)
+POST   /api/pricing/reset           # Restablecer valores de los precios (admin)
+
+// --- Usuarios (admin) ---
+GET    /api/auth/users              # Listar usuarios (falta)
+POST   /api/auth/users/balance      # Actualizar saldo de usuario (falta)
 ```
 
 ### **2. WebSockets** (preparado)
@@ -300,6 +317,7 @@ El frontend incluye un sistema de simulación completo que permite:
 | Variable | Descripción | Valor por defecto |
 |----------|-------------|-------------------|
 | `VITE_API_URL` | URL del backend | `http://localhost:3000` |
+| `VITE_API_URL_HTTPS` | URL del backend (HTTPS) | `https://api.neuropod.com` |
 | `VITE_GOOGLE_CLIENT_ID` | ID de cliente OAuth2 | - |
 
 ## 🚨 Notas Importantes

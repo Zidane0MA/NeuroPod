@@ -1,7 +1,5 @@
 # Guía Detallada: Configuración de Cloudflare y Cloudflare Tunnel para Neuropod
 
-> **Nota**: Actualmente aplicado.
-
 Esta guía te ayudará a configurar Cloudflare para tu dominio existente en Hostinger y a establecer un Cloudflare Tunnel para exponer tus servicios locales (frontend, backend y pods de Kubernetes) a Internet de forma segura.
 
 ## 1. Transferir la Gestión DNS a Cloudflare
@@ -66,6 +64,24 @@ Esta guía te ayudará a configurar Cloudflare para tu dominio existente en Host
    - TTL: Auto
 
    > **Nota**: Deja estos registros configurados temporalmente con un destino como `example.com` o el dominio actual. Actualizaremos los destinos correctos después de configurar el túnel.
+
+### 2.1. Crear Registros DNS para redireccion
+
+2. Agregar/editar los siguientes registros:
+
+   **Registro para dominio:**
+   - Tipo: CNAME
+   - Nombre: neuropod.online
+   - Destino: app.neuropod.online
+   - Proxy status: Activado (Proxied)
+   - TTL: Auto
+
+   **Registro para www:**
+   - Tipo: CNAME
+   - Nombre: www
+   - Destino: app.neuropod.online
+   - Proxy status: Activado (Proxied)
+   - TTL: Auto
 
 ## 3. Configurar Cloudflare Tunnel en Windows
 
@@ -182,7 +198,7 @@ Esta guía te ayudará a configurar Cloudflare para tu dominio existente en Host
 
 2. Abre un navegador e intenta acceder a:
    - `https://app.neuropod.online` (debería mostrar tu frontend)
-   - `https://api.neuropod.online/status` (o cualquier endpoint disponible para verificar el backend)
+   - `https://api.neuropod.online/status/public` (o cualquier endpoint disponible para verificar el backend)
 
 3. Si todo funciona correctamente, ¡felicidades! Tu configuración básica está completa.
 

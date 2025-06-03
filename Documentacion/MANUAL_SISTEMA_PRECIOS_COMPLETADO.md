@@ -2,7 +2,7 @@
 
 ## 🎯 **RESUMEN EJECUTIVO**
 
-Se ha implementado exitosamente un sistema de precios dinámico que reemplaza las variables de entorno por una configuración administrable desde la web.
+Sistema de precios dinámico que usa una configuración administrable desde la web.
 
 ### **📋 Lo que se ha implementado:**
 
@@ -11,7 +11,6 @@ Se ha implementado exitosamente un sistema de precios dinámico que reemplaza la
 - ✅ **Controlador de precios** - API completa para CRUD
 - ✅ **Rutas `/api/pricing`** - Endpoints para administración
 - ✅ **Seeder automático** - Inicializa valores por defecto
-- ✅ **Compatibilidad** - APIs antiguas siguen funcionando
 
 #### **🎨 Frontend**  
 - ✅ **Servicio de precios** - Comunicación con API
@@ -79,7 +78,7 @@ npm run dev
 ### **API Testing**
 ```bash
 # Verificar API de precios
-curl http://localhost:3000/api/pricing
+curl http://localhost:3000/api/pricing/public
 
 # Calcular costo
 curl -X POST http://localhost:3000/api/pricing/calculate-cost \
@@ -118,17 +117,40 @@ curl -X POST http://localhost:3000/api/pricing/calculate-cost \
 
 ---
 
-## 📊 **ANTES vs DESPUÉS**
+## 📊 **COMPARACIÓN DE ENDPOINTS**
 
-| Aspecto | ❌ **Antes (Variables)** | ✅ **Después (Dinámico)** |
-|---------|-------------------------|---------------------------|
-| **Cambiar precios** | Editar `.env` + reiniciar | Panel web, cambio inmediato |
-| **Gestión** | Manual, propenso a errores | Interfaz intuitiva |
-| **Validación** | Ninguna | Automática (≥ 0) |
-| **Historial** | Ninguno | Log en base de datos |
-| **Acceso** | Solo desarrolladores | Administradores web |
-| **Backup** | Manual | Automático en MongoDB |
-| **Rollback** | Manual | Botón "Reset" |
+| Aspecto | `/api/pricing/public` | `/api/pricing` |
+|---------|----------------------|----------------|
+| **Autenticación** | ❌ No requerida | ✅ Token JWT |
+| **Logs** | ❌ Sin logs | ✅ Log de usuario |
+| **Uso** | Página pública | Páginas privadas |
+| **Datos** | Optimizados | Completos |
+| **Auditoría** | No | Sí |
+
+### **Backend**
+```javascript
+// Nuevo controlador público (sin req.user)
+exports.getPublicPricing = async (req, res) => {
+  // Sin logAction - no hay usuario
+  const pricing = await Pricing.getCurrentPricing();
+  // Respuesta optimizada para página pública
+};
+
+// Ruta pública
+router.get('/public', getPublicPricing); // Sin protect middleware
+```
+
+### **Frontend**
+```typescript
+// Nuevo método en servicio
+async getPublicPricing(): Promise<PricingData> {
+  const response = await api.get("/api/pricing/public");
+  return response.data.data;
+}
+
+// Uso en página pública
+const data = await pricingService.getPublicPricing();
+```
 
 ---
 

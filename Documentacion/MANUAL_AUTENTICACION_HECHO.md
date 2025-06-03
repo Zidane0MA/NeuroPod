@@ -1,8 +1,7 @@
 # Autenticación en NeuroPod
 
-Este documento describe el sistema de autenticación implementado en NeuroPod, sus componentes y configuración.
-
-> **Nota**: Sistema ya implementado.
+Este documento describe el sistema de autenticación implementado en NeuroPod, incluyendo los métodos de autenticación, flujo de trabajo, configuración y manejo de sesiones.
+Tambien incluye una guía para la configuración de la autenticación con Google OAuth2 y el manejo de sesiones desde variables de entorno.
 
 ## Métodos de Autenticación
 
@@ -31,7 +30,7 @@ NeuroPod soporta dos métodos de autenticación:
 - Implementa verificación de roles y permisos
 - Gestiona la creación y actualización de usuarios
 
-## Configuración
+## Guia Configuración
 
 ### 1. Google Cloud Console
 
@@ -57,6 +56,7 @@ Para que la autenticación con Google funcione, se debe configurar un proyecto e
 ```
 # API URL
 VITE_API_URL=http://localhost:3000
+VITE_API_URL_HTTPS=https://api.neuropod.com
 # Google OAuth Client ID (desde Google Cloud Console)
 VITE_GOOGLE_CLIENT_ID=tu_google_client_id_aqui
 ```
@@ -67,13 +67,23 @@ VITE_GOOGLE_CLIENT_ID=tu_google_client_id_aqui
 # Entorno
 NODE_ENV=production  # 'development' o 'production'
 
-# JWT
-JWT_SECRET=tu_clave_secreta_aqui
+# Servidor
+PORT=3000
+
+# Base de datos
+MONGODB_URI=mongodb://localhost:27017/plataforma
+
+# JWT (Autenticación)
+JWT_SECRET=cambiar_por_clave_segura_en_produccion
 JWT_EXPIRE=24h
 
 # Google OAuth
-GOOGLE_CLIENT_ID=tu_google_client_id_aqui
-GOOGLE_CLIENT_SECRET=tu_google_client_secret_aqui
+GOOGLE_CLIENT_ID=tu_google_client_id
+GOOGLE_CLIENT_SECRET=tu_google_client_secret
+
+# Frontend
+FRONTEND_URL=http://localhost:5173
+FRONTEND_URL_HTTPS=https://app.neuropod.online
 
 # Control de acceso
 TRUST_GOOGLE_AUTH=true  # 'true' para confiar únicamente en verificación de Google

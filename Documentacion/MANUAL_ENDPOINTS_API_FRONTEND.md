@@ -11,6 +11,7 @@ Esta documentación describe todos los endpoints de la API que utiliza el fronte
 ### URL Base de la API
 ```
 VITE_API_URL=http://localhost:3000
+VITE_API_URL_HTTPS=https://api.neuropod.com
 ```
 
 ### Autenticación
@@ -438,7 +439,7 @@ Authorization: Bearer <token>
 ---
 
 ### **POST** `/api/pods/{podId}/stop`
-**Descripción**: Detener un pod en ejecución
+**Descripción**: Detener/eliminar un pod en ejecución
 
 **Parámetros de ruta**:
 - `podId`: ID único del pod
@@ -460,8 +461,9 @@ Authorization: Bearer <token>
 ```
 
 **Casos de uso**:
-- Botón "Detener" en cards de pods
+- Botón "Detener" en cards de pods conservando la card
 - Ahorro de recursos cuando no se use
+- Despues de "Detener" se podra iniciar el pod con "Iniciar" `(/api/pods/{podId}/start)`
 
 ---
 
@@ -486,6 +488,7 @@ Authorization: Bearer <token>
 
 **Casos de uso**:
 - Botón "Eliminar" en cards de pods
+- Eliminar card de pod
 - Limpieza de pods no utilizados
 
 ---

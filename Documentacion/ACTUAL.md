@@ -16,7 +16,7 @@
 - ✅ **Sistema de templates** con CRUD completo
 - ✅ **Administración de usuarios** (solo UI, datos simulados)
 - ✅ **Dashboard responsive** con TailwindCSS y shadcn-ui
-- ✅ **21 endpoints documentados** y preparados para backend
+- ✅ **endpoints documentados** y preparados para backend
 - ✅ **Manejo de errores** y fallback automático a simulación
 
 **Páginas Implementadas**:
@@ -41,14 +41,25 @@
 - ✅ **Plantillas predefinidas** via seeders
 - ✅ **Validaciones** y permisos por rol
 
-#### 🔐 **Autenticación (100% Implementada)**
+#### 📈 **Sistema de Precios (100% Implementado)**
+- ✅ **Modelo de precios** por hora de GPU
+- ✅ **API de precios** con endpoints para obtener y calcular costos
+- ✅ **Frontend con simulación** de precios
+- ✅ **Validaciones de saldo** y costos en tiempo real
+- ✅ **Configuración de precios** en base de datos
+- ✅ **Endpoints de precios** documentados y preparados
+
+### 🟡 **EN DESARROLLO FINAL**
+
+#### 🖥️ **Frontend React (95% Implementado)**
+
+**Autenticación (95% Implementada)**
+- ❌ Error al logearse y registrarse desde https://app.neuropod.online
 - ✅ **Google OAuth2** configurado
 - ✅ **Control de acceso** por email y roles
 - ✅ **Sistema JWT** con middleware
 - ✅ **Gestión de sesiones** segura
 - ✅ **Logout completo** con limpieza de datos
-
-### 🟡 **EN DESARROLLO FINAL**
 
 #### 🖥️ **Backend Node.js (85% Completado)**
 
@@ -66,8 +77,6 @@
 // Endpoints faltantes identificados
 GET /api/auth/users               // Lista de usuarios para admin
 POST /api/auth/users/balance      // Actualizar saldo de usuario  
-GET /api/status/pricing          // Configuración de precios
-POST /api/status/calculate-cost  // Calcular costos estimados
 ```
 
 **🔧 Problemas Conocidos**:
@@ -96,14 +105,14 @@ POST /api/status/calculate-cost  // Calcular costos estimados
 
 ```
 NeuroPod/
-├── NeuroPod-Frontend/           🟡 95% COMPLETO falta precios de gpu y gestion de usuarios y saldo.
+├── NeuroPod-Frontend/           🟡 95% COMPLETO falta login desde https y gestion de usuarios y saldo.
 │   ├── src/
 │   │   ├── components/         🟡 Componentes UI completos
 │   │   ├── pages/              🟡 Todas las páginas implementadas
 │   │   ├── services/           🟡 API services con simulación
 │   │   ├── types/              🟡 TypeScript types definidos
-│   │   └── utils/              🟡 Utilidades y simulación
-│   └── package.json            🟡 Dependencias instaladas
+│   │   └── utils/              ✅ Utilidades y simulación
+│   └── package.json            ✅ Dependencias instaladas
 │
 ├── NeuroPod-Backend/            🟡 85% COMPLETO
 │   ├── src/
@@ -206,7 +215,7 @@ cloudflared.exe tunnel run neuropod-tunnel
 
 | Funcionalidad | Frontend | Backend | Integración | Estado |
 |---------------|----------|---------|-------------|---------|
-| **Autenticación Google** | ✅ | ✅ | ✅ | Funcional |
+| **Autenticación Google** | 🔄 | ✅ | ✅ | Funcional |
 | **Gestión Usuarios** | 🔄 | 🔄 | ❌ | Simulado |
 | **Sistema Templates** | ✅ | ✅ | ✅ | Funcional |
 | **Gestión Pods** | ✅ | 🔄 | 🔄 | Simulado |

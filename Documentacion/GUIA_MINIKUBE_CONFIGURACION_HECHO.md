@@ -1,6 +1,6 @@
-# 🛠️ Configuración ya implementada del Entorno Kubernetes (minikube)
+# 🛠️ Configuración implementada del Entorno Kubernetes (minikube)
 
-> **Nota**: Completamente implementado.
+Esta guia te ayudará a configurar un entorno de desarrollo con Minikube y Docker Desktop en Windows, incluyendo el uso de GPU y la creación de un certificado TLS para asegurar las comunicaciones.
 
 ## Instalacion de programas
 
@@ -12,6 +12,16 @@ kubectl version –client
 ```
 
 ## Configuraciones previas
+
+Para que Docker Desktop funcione correctamente con WSL2, es necesario realizar algunas configuraciones previas:
+
+```powershell
+# Configurar el backend de WSL 2
+wsl --set-default-version 2
+
+# Habilitar la virtualización en el BIOS
+# Reiniciar y habilitar la virtualización en la configuración del BIOS
+```
 
 Para ajustar la memoria disponible y la cantidad de procesadores en Docker Desktop. `notepad $env:USERPROFILE\.wslconfig`. 
 

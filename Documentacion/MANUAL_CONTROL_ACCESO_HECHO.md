@@ -1,8 +1,6 @@
 # Control de Acceso de Usuarios en NeuroPod
 
-Este documento explica cómo configurar el control de acceso para limitar quién puede registrarse y acceder a la plataforma NeuroPod.
-
-> **Nota**: Sistema ya implementado.
+Este documento explica de forma detallada cómo funciona el control de acceso en NeuroPod, incluyendo la configuración de variables de entorno, los métodos de autenticación y las recomendaciones para producción.
 
 ## Configuración
 

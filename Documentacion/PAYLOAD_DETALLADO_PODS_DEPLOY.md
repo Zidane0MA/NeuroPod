@@ -1,5 +1,8 @@
 # 📤 NeuroPod - Payload de Creación de Pods COMPLETO
 
+## 🚀 **Payload de Creación de Pods - Detalles Completos**
+Este documento detalla el payload completo que el backend espera recibir al crear un nuevo pod, incluyendo todos los campos necesarios y sus respectivos casos de uso.
+
 ## 🔍 **Payload COMPLETO que recibe el backend:**
 
 ```javascript

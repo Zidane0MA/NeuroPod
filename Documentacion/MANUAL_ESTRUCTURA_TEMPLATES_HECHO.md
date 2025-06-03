@@ -1,8 +1,6 @@
 ## 🔧 Estructura manejada para los templates en Neuropod
 
-Este documento describe el sistema de templates manejado en NeuroPod.
-
-> **Nota**: Sistema ya implementado. Falta mejorar el diseño card de los templates en el frontend (NeuroPod-Frontend\src\pages\admin\Templates.tsx) a algo mas vistoso sin cambiar las funcionalidades.
+Este documento describe la estructura y los endpoints utilizados para manejar los templates en Neuropod, tanto en el frontend como en el backend. Los templates son configuraciones predefinidas que permiten a los usuarios crear contenedores con configuraciones específicas de Docker, incluyendo puertos, imágenes y almacenamiento.
 
 ### 1. **API de Templates**
 

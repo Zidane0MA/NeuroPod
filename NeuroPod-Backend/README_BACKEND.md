@@ -30,6 +30,8 @@ npm run seed
 
 ```
 .env
+package.json
+README_BACKEND.md
 src/
 ├── app.js                # Configuración de Express
 ├── server.js             # Punto de entrada
@@ -40,7 +42,6 @@ src/
 │
 ├── controllers/          # Controladores para la lógica de negocio
 │   ├── auth.controller.js      # Autenticación y gestión de usuarios
-│   ├── container.controller.js # Gestión de contenedores
 │   ├── pod.controller.js       # Gestión de pods en Kubernetes
 │   ├── princing.controller.js  # Gestión de precios de las GPU
 │   ├── status.controller.js    # Estado del sistema
@@ -84,12 +85,12 @@ src/
 
 ### Rutas Públicas `src/app.js`
 
-- ✅ GET `/api/health` - Verificar estado del servidor
+- ✅ GET `/api/health` - Verificar estado del servidor solo usado en backend
 
 ### Rutas de status - `src/routes/status.routes.js`
 
 - ✅ GET `/api/status/public` - Verificar estado público de la API
-- ✅ GET `/api/status` - Estado del sistema protegido
+- ✅ GET `/api/status` - Estado del sistema protegido para dashboard admin
 
 ### Autenticación - `src/routes/auth.routes.js`
 
@@ -128,6 +129,7 @@ src/
 ### Gestión de Precios y GPU `src/routes/pricing.routes.js`
 
 - ✅ GET `/api/pricing` - Obtener la configuración actual de precios de recursos (requiere autenticación)
+- ✅ GET `/api/pricing/public` - Obtener la configuración actual de precios de recursos
 - ✅ POST `/api/pricing/calculate-cost` - Calcular el costo estimado de un pod según los recursos solicitados (requiere autenticación)
 - ✅ GET `/api/pricing/gpus/available` - Listar las GPUs disponibles para asignar a pods (requiere autenticación)
 - ✅ GET `/api/pricing/gpus/:gpuId` - Obtener información detallada de una GPU específica (requiere autenticación)
@@ -150,7 +152,7 @@ src/
 - Para desarrollo local, puedes usar `mockLogin` en lugar de OAuth
 - El usuario con correo `lolerodiez@gmail.com` siempre tendrá rol de administrador
 - Todos los contenedores se gestionan a través de la API de Kubernetes
-- Ejecuta `npm run seed` después de la primera instalación para crear las plantillas predeterminadas
+- Ejecuta `npm run seed` después de la primera instalación para crear las plantillas y precios GPU predeterminadas
 
 ## Plantillas Predeterminadas
 

@@ -1,8 +1,6 @@
 const express = require('express');
 const { 
-  getSystemStatus,
-  getPricing,
-  calculateCost
+  getSystemStatus
 } = require('../controllers/status.controller');
 const { protect } = require('../middleware/auth.middleware');
 

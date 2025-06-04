@@ -96,7 +96,7 @@ export const authService = {
             email: email,
             name: isAdmin ? 'Admin' : 'Cliente',
             role: isAdmin ? 'admin' : 'client',
-            balance: isAdmin ? Infinity : 10,
+            balance: isAdmin ? 'Infinity' : 10, // Usar string 'Infinity' para admin
             registrationDate: new Date().toLocaleDateString(),
             activePods: isAdmin ? 2 : 1,
             totalPods: isAdmin ? 5 : 3,

@@ -192,7 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             registrationDate: new Date().toLocaleDateString(),
             activePods: 2,
             totalPods: 5,
-            balance: Infinity,
+            balance: 'Infinity', // Usar string 'Infinity'
             status: 'online',
             role: "admin" 
           } 

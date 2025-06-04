@@ -9,7 +9,8 @@ const {
   updateUserBalance,
   getAllUsers,
   suspendUser,
-  deleteUser
+  deleteUser,
+  fixAdminBalances
 } = require('../controllers/auth.controller');
 const { protect, authorize } = require('../middleware/auth.middleware');
 
@@ -33,5 +34,6 @@ router.get('/users', protect, authorize('admin'), getAllUsers);
 router.post('/users/balance', protect, authorize('admin'), updateUserBalance);
 router.post('/users/suspend', protect, authorize('admin'), suspendUser);
 router.delete('/users/:userId', protect, authorize('admin'), deleteUser);
+router.post('/admin/fix-balances', protect, authorize('admin'), fixAdminBalances);
 
 module.exports = router;

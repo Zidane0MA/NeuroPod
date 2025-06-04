@@ -151,7 +151,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
       <div className="p-4 border-t border-border">
         <div className="p-4 flex flex-col space-y-3">
           <div className="flex items-center justify-between">
-            <span className="font-medium">{user?.name}</span>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{user?.name}</span>
+              {user?.status === 'online' && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  Online
+                </span>
+              )}
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -169,13 +177,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Saldo</span>
             <span className="font-semibold">
-              {user?.role === "admin" ? (
+              {user?.balance === 'Infinity' || user?.balance === Infinity || !isFinite(Number(user?.balance || 0)) ? (
                 <span className="flex items-center gap-1 text-primary">
                   <InfinityIcon className="h-4 w-4" />
                   <span>€</span>
                 </span>
               ) : (
-                `${user?.balance?.toFixed(2) || 0} €`
+                `${(Number(user?.balance) || 0).toFixed(2)} €`
               )}
             </span>
           </div>

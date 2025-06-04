@@ -33,6 +33,17 @@ export const UsersTable = ({
 }: UsersTableProps) => {
   const isMobile = useIsMobile();
   
+  // Función para formatear el balance de manera segura
+  const formatBalance = (balance: number | null | 'Infinity') => {
+    if (balance === null || balance === undefined) {
+      return '0.00 €';
+    }
+    if (balance === 'Infinity' || balance === Infinity || !isFinite(Number(balance))) {
+      return '∞ €';
+    }
+    return `${Number(balance).toFixed(2)} €`;
+  };
+  
   return (
     <div className="rounded-lg border shadow-sm overflow-hidden">
       <div className="w-full overflow-x-auto">
@@ -55,7 +66,7 @@ export const UsersTable = ({
                 <TableCell>{user.name}</TableCell>
                 {!isMobile && <TableCell>{user.registrationDate}</TableCell>}
                 <TableCell>{user.activePods}/{user.totalPods}</TableCell>
-                {!isMobile && <TableCell>{user.balance.toFixed(2)} €</TableCell>}
+                {!isMobile && <TableCell>{formatBalance(user.balance)}</TableCell>}
                 <TableCell>
                   <Badge variant={user.status === 'online' ? 'default' : 'secondary'}>
                     {user.status === 'online' ? 'Online' : 'Offline'}

@@ -100,6 +100,13 @@ exports.mockLogin = async (req, res) => {
         user.role = 'client';
         await user.save();
       }
+      
+      // Forzar actualización del balance para admins existentes
+      if (user.role === 'admin' && user.balance !== Number.POSITIVE_INFINITY) {
+        console.log(`Actualizando balance para admin existente: ${email}`);
+        user.balance = Number.POSITIVE_INFINITY;
+        await user.save();
+      }
     }
     
     // Generar token JWT
@@ -123,7 +130,7 @@ exports.mockLogin = async (req, res) => {
       email: user.email,
       avatar: user.avatar,
       role: user.role,
-      balance: user.role === 'admin' ? Infinity : user.balance,
+      balance: user.role === 'admin' || user.balance === Number.POSITIVE_INFINITY ? 'Infinity' : user.balance,
       plan: user.plan,
       registrationDate: user.createdAt.toLocaleDateString(),
       activePods: 0, // Estos valores se deberían obtener dinámicamente
@@ -335,6 +342,13 @@ exports.googleLogin = async (req, res) => {
         await user.save();
       }
       
+      // Forzar actualización del balance para admins existentes
+      if (user.role === 'admin' && user.balance !== Number.POSITIVE_INFINITY) {
+        console.log(`Actualizando balance para admin existente en googleLogin: ${user.email}`);
+        user.balance = Number.POSITIVE_INFINITY;
+        await user.save();
+      }
+      
       // Actualizar datos del usuario si han cambiado
       if (user.name !== googleUser.name || user.avatar !== googleUser.avatar) {
         user.name = googleUser.name;
@@ -367,7 +381,7 @@ exports.googleLogin = async (req, res) => {
         email: user.email,
         avatar: user.avatar,
         role: user.role,
-        balance: user.role === 'admin' ? Infinity : user.balance,
+        balance: user.role === 'admin' || user.balance === Number.POSITIVE_INFINITY ? 'Infinity' : user.balance,
         plan: user.plan,
         registrationDate: user.createdAt.toLocaleDateString(),
         activePods: 0, // Estos valores se deberían obtener dinámicamente
@@ -439,7 +453,7 @@ exports.logout = async (req, res) => {
 };
 
 // Verificar JWT
-exports.verifyToken = (req, res) => {
+exports.verifyToken = async (req, res) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -447,24 +461,53 @@ exports.verifyToken = (req, res) => {
     });
   }
   
-  console.log('Token verificado para usuario:', req.user.email);
-  
-  res.status(200).json({
-    success: true,
-    user: {
-      id: req.user._id,
-      name: req.user.name,
-      email: req.user.email,
-      avatar: req.user.avatar,
-      role: req.user.role,
-      balance: req.user.role === 'admin' ? Infinity : req.user.balance,
-      plan: req.user.plan,
-      registrationDate: req.user.createdAt.toLocaleDateString(),
-      activePods: 0, // Obtener dinámicamente
-      totalPods: 0,   // Obtener dinámicamente
-      status: 'online'
+  try {
+    // Obtener el usuario completo de la base de datos
+    const user = await User.findById(req.user._id);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario no encontrado'
+      });
     }
-  });
+    
+    // Forzar actualización del balance para admins si es necesario
+    if (user.role === 'admin' && user.balance !== Number.POSITIVE_INFINITY) {
+      console.log(`Actualizando balance para admin en verifyToken: ${user.email}`);
+      user.balance = Number.POSITIVE_INFINITY;
+      await user.save();
+    }
+    
+    console.log('Token verificado para usuario:', user.email, 'Balance en DB:', user.balance);
+    
+    // Manejar Infinity correctamente para JSON
+    const userBalance = user.role === 'admin' || user.balance === Number.POSITIVE_INFINITY ? 'Infinity' : user.balance;
+    
+    res.status(200).json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        role: user.role,
+        balance: userBalance, // Envíar como string 'Infinity' para admins
+        plan: user.plan,
+        registrationDate: user.createdAt.toLocaleDateString(),
+        activePods: 0, // Obtener dinámicamente
+        totalPods: 0,   // Obtener dinámicamente
+        status: 'online'
+      }
+    });
+  } catch (error) {
+    console.error('Error en verifyToken:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al verificar token',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 };
 
 // Obtener perfil del usuario
@@ -488,7 +531,7 @@ exports.getMe = async (req, res) => {
         email: user.email,
         avatar: user.avatar,
         role: user.role,
-        balance: user.role === 'admin' ? Infinity : user.balance,
+        balance: user.role === 'admin' || user.balance === Number.POSITIVE_INFINITY ? 'Infinity' : user.balance,
         plan: user.plan,
         registrationDate: user.createdAt.toLocaleDateString(),
         activePods: 0, // Obtener dinámicamente
@@ -596,16 +639,23 @@ exports.getAllUsers = async (req, res) => {
     const Pod = require('../models/Pod.model');
     const usersWithStats = await Promise.all(
       users.map(async (user) => {
+        // Forzar actualización del balance para admins si es necesario
+        if (user.role === 'admin' && user.balance !== Number.POSITIVE_INFINITY) {
+          console.log(`Actualizando balance para admin: ${user.email}`);
+          user.balance = Number.POSITIVE_INFINITY;
+          await user.save();
+        }
+        
         const activePods = await Pod.countDocuments({ 
           userId: user._id, 
           status: { $in: ['running', 'creating'] }
         });
         const totalPods = await Pod.countDocuments({ userId: user._id });
         
-        // Calcular estado basado en última actividad (simplificado)
-        const recentActivity = await Pod.findOne({ 
-          userId: user._id, 
-          lastActive: { $gte: new Date(Date.now() - 30 * 60 * 1000) } // últimos 30 minutos
+        // Calcular estado basado en sesiones activas (mejor que actividad de pods)
+        const activeSession = await Session.findOne({ 
+          userId: user._id,
+          createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // últimas 24 horas
         });
         
         return {
@@ -613,8 +663,8 @@ exports.getAllUsers = async (req, res) => {
           email: user.email,
           name: user.name,
           registrationDate: user.createdAt.toLocaleDateString(),
-          balance: user.role === 'admin' ? Infinity : user.balance,
-          status: recentActivity ? 'online' : 'offline',
+          balance: user.role === 'admin' || user.balance === Number.POSITIVE_INFINITY ? 'Infinity' : user.balance,
+          status: activeSession ? 'online' : 'offline',
           role: user.role,
           activePods,
           totalPods
@@ -812,6 +862,76 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error al eliminar usuario',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// Reparar usuarios admin con balance incorrecto (solo admin)
+exports.fixAdminBalances = async (req, res) => {
+  try {
+    // Verificar si es admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permiso para ejecutar esta operación'
+      });
+    }
+    
+    console.log('Iniciando reparación de balances de administradores...');
+    
+    // Encontrar todos los usuarios admin con balance incorrecto
+    const adminUsers = await User.find({ 
+      role: 'admin',
+      $or: [
+        { balance: { $ne: Number.POSITIVE_INFINITY } },
+        { balance: null },
+        { balance: { $exists: false } }
+      ]
+    });
+    
+    console.log(`Encontrados ${adminUsers.length} administradores con balance incorrecto`);
+    
+    const updatedUsers = [];
+    
+    for (const user of adminUsers) {
+      console.log(`Reparando balance para admin: ${user.email} (balance actual: ${user.balance})`);
+      
+      // Actualizar directamente en la base de datos
+      await User.updateOne(
+        { _id: user._id },
+        { $set: { balance: Number.POSITIVE_INFINITY } }
+      );
+      
+      updatedUsers.push({
+        id: user._id,
+        email: user.email,
+        previousBalance: user.balance,
+        newBalance: Number.POSITIVE_INFINITY
+      });
+    }
+    
+    // Registrar log de la reparación
+    await logAction(req.user._id, 'ADMIN_BALANCES_FIXED', { 
+      usersUpdated: updatedUsers.length,
+      updatedUsers: updatedUsers
+    });
+    
+    console.log(`Reparación completada. ${updatedUsers.length} usuarios actualizados.`);
+    
+    res.status(200).json({
+      success: true,
+      message: `Se repararon ${updatedUsers.length} balances de administradores`,
+      data: {
+        usersUpdated: updatedUsers.length,
+        updatedUsers: updatedUsers
+      }
+    });
+  } catch (error) {
+    console.error('Error reparando balances de admin:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al reparar balances de administradores',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }

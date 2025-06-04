@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +36,19 @@ export const UserActionDialog = ({
   isBalanceAction = false,
   onBalanceAssign
 }: UserActionDialogProps) => {
-  const [balance, setBalance] = useState<number>(user?.balance || 0);
+  // Función para obtener el balance inicial de forma segura
+  const getInitialBalance = (userBalance: number | null | 'Infinity'): number => {
+    if (userBalance === null || userBalance === undefined) return 0;
+    if (userBalance === 'Infinity' || userBalance === Infinity || !isFinite(Number(userBalance))) return 0;
+    return Number(userBalance);
+  };
+  
+  const [balance, setBalance] = useState<number>(getInitialBalance(user?.balance));
+
+  // Actualizar balance cuando cambie el usuario
+  useEffect(() => {
+    setBalance(getInitialBalance(user?.balance));
+  }, [user]);
 
   const handleBalanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value);

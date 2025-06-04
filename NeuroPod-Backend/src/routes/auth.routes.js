@@ -7,7 +7,9 @@ const {
   verifyToken,
   getMe,
   updateUserBalance,
-  getAllUsers
+  getAllUsers,
+  suspendUser,
+  deleteUser
 } = require('../controllers/auth.controller');
 const { protect, authorize } = require('../middleware/auth.middleware');
 
@@ -29,5 +31,7 @@ router.get('/me', protect, getMe);
 // Rutas de administrador
 router.get('/users', protect, authorize('admin'), getAllUsers);
 router.post('/users/balance', protect, authorize('admin'), updateUserBalance);
+router.post('/users/suspend', protect, authorize('admin'), suspendUser);
+router.delete('/users/:userId', protect, authorize('admin'), deleteUser);
 
 module.exports = router;

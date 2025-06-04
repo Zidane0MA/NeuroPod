@@ -565,7 +565,7 @@ exports.updateUserBalance = async (req, res) => {
   }
 };
 
-// Obtener todos los usuarios (solo admin)
+// Obtener todos los usuarios con estadísticas de pods (solo admin)
 exports.getAllUsers = async (req, res) => {
   try {
     // Verificar si es admin
@@ -576,27 +576,242 @@ exports.getAllUsers = async (req, res) => {
       });
     }
     
-    const users = await User.find().select('-__v');
+    const { search } = req.query;
+    
+    // Base query
+    let query = {};
+    if (search) {
+      query = {
+        $or: [
+          { email: { $regex: search, $options: 'i' } },
+          { name: { $regex: search, $options: 'i' } }
+        ]
+      };
+    }
+    
+    // Obtener usuarios
+    const users = await User.find(query).select('-__v');
+    
+    // Calcular activePods y totalPods para cada usuario
+    const Pod = require('../models/Pod.model');
+    const usersWithStats = await Promise.all(
+      users.map(async (user) => {
+        const activePods = await Pod.countDocuments({ 
+          userId: user._id, 
+          status: { $in: ['running', 'creating'] }
+        });
+        const totalPods = await Pod.countDocuments({ userId: user._id });
+        
+        // Calcular estado basado en última actividad (simplificado)
+        const recentActivity = await Pod.findOne({ 
+          userId: user._id, 
+          lastActive: { $gte: new Date(Date.now() - 30 * 60 * 1000) } // últimos 30 minutos
+        });
+        
+        return {
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          registrationDate: user.createdAt.toLocaleDateString(),
+          balance: user.role === 'admin' ? Infinity : user.balance,
+          status: recentActivity ? 'online' : 'offline',
+          role: user.role,
+          activePods,
+          totalPods
+        };
+      })
+    );
+    
+    // Registrar log de acción
+    await logAction(req.user._id, 'USERS_LISTED', { count: usersWithStats.length });
     
     res.status(200).json({
       success: true,
-      count: users.length,
-      data: users.map(user => ({
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar,
-        role: user.role,
-        balance: user.role === 'admin' ? Infinity : user.balance,
-        plan: user.plan,
-        createdAt: user.createdAt
-      }))
+      count: usersWithStats.length,
+      data: usersWithStats
     });
   } catch (error) {
     console.error('Error al obtener usuarios:', error);
     res.status(500).json({
       success: false,
       message: 'Error al obtener la lista de usuarios',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// Suspender usuario - detener todos sus pods activos (solo admin)
+exports.suspendUser = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    
+    // Verificar si es admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permiso para suspender usuarios'
+      });
+    }
+    
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de usuario es requerido'
+      });
+    }
+    
+    // Verificar que el usuario existe
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario no encontrado'
+      });
+    }
+    
+    // No permitir suspender a otro admin
+    if (user.role === 'admin') {
+      return res.status(400).json({
+        success: false,
+        message: 'No se puede suspender a un administrador'
+      });
+    }
+    
+    // Obtener todos los pods activos del usuario
+    const Pod = require('../models/Pod.model');
+    const activePods = await Pod.find({ 
+      userId: userId, 
+      status: { $in: ['running', 'creating'] }
+    });
+    
+    // Detener todos los pods activos
+    // TODO: Cuando se implemente Kubernetes service, usar kubernetesService.stopPod(pod.podId)
+    const stoppedPods = [];
+    for (const pod of activePods) {
+      pod.status = 'stopped';
+      pod.lastActive = new Date();
+      await pod.save();
+      stoppedPods.push(pod.podId);
+    }
+    
+    console.log(`Suspendido usuario ${user.email}, pods detenidos: ${stoppedPods.length}`);
+    
+    // Registrar log de la acción
+    await logAction(req.user._id, 'USER_SUSPENDED', { 
+      targetUserId: userId,
+      targetUserEmail: user.email,
+      podsStopped: stoppedPods.length,
+      stoppedPods: stoppedPods
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: `Usuario ${user.email} suspendido correctamente`,
+      data: { 
+        userId, 
+        userEmail: user.email,
+        podsStopped: stoppedPods.length,
+        stoppedPods: stoppedPods
+      }
+    });
+  } catch (error) {
+    console.error('Error suspendiendo usuario:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al suspender usuario',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// Eliminar usuario completamente (solo admin)
+exports.deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Verificar si es admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permiso para eliminar usuarios'
+      });
+    }
+    
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de usuario es requerido'
+      });
+    }
+    
+    // Verificar que el usuario existe
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario no encontrado'
+      });
+    }
+    
+    // No permitir eliminar a otro admin
+    if (user.role === 'admin') {
+      return res.status(400).json({
+        success: false,
+        message: 'No se puede eliminar a un administrador'
+      });
+    }
+    
+    // No permitir que el admin se elimine a sí mismo
+    if (userId === req.user._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'No puedes eliminarte a ti mismo'
+      });
+    }
+    
+    const Pod = require('../models/Pod.model');
+    
+    // 1. Obtener todos los pods del usuario (para estadísticas)
+    const userPods = await Pod.find({ userId });
+    const activePods = userPods.filter(pod => pod.status === 'running' || pod.status === 'creating');
+    
+    // 2. Eliminar todos los pods del usuario
+    // TODO: Cuando se implemente Kubernetes service, detener pods activos primero
+    const deletedPodsCount = await Pod.deleteMany({ userId });
+    
+    // 3. Eliminar todas las sesiones del usuario
+    const deletedSessionsCount = await Session.deleteMany({ userId });
+    
+    // 4. Registrar log de la eliminación (antes de eliminar el usuario)
+    await logAction(req.user._id, 'USER_DELETED', { 
+      targetUserId: userId,
+      targetUserEmail: user.email,
+      podsDeleted: deletedPodsCount.deletedCount,
+      activePods: activePods.length,
+      sessionsDeleted: deletedSessionsCount.deletedCount
+    });
+    
+    // 5. Eliminar el usuario
+    await User.findByIdAndDelete(userId);
+    
+    console.log(`Usuario eliminado: ${user.email}, pods: ${deletedPodsCount.deletedCount}, sesiones: ${deletedSessionsCount.deletedCount}`);
+    
+    res.status(200).json({
+      success: true,
+      message: `Usuario ${user.email} eliminado correctamente`,
+      data: { 
+        userId,
+        userEmail: user.email,
+        podsDeleted: deletedPodsCount.deletedCount,
+        sessionsDeleted: deletedSessionsCount.deletedCount,
+        activePods: activePods.length
+      }
+    });
+  } catch (error) {
+    console.error('Error eliminando usuario:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar usuario',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }

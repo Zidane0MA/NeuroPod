@@ -1112,23 +1112,27 @@ Authorization: Bearer <admin_token>
 ## 👥 Endpoints de Administración de Usuarios
 
 ### **GET** `/api/auth/users`
-**Descripción**: Obtener lista de todos los usuarios (solo administradores)
+**Descripción**: Obtener lista de todos los usuarios con estadísticas de pods calculadas dinámicamente (solo administradores)
 
 **Headers requeridos**:
 ```
 Authorization: Bearer <admin_token>
 ```
 
+**Parámetros de consulta opcionales**:
+- `search`: Buscar por nombre o email
+
 **Respuesta exitosa**:
 ```json
 {
   "success": true,
+  "count": 2,
   "data": [
     {
       "id": "user_uuid_1",
       "email": "cliente@example.com",
       "name": "Cliente Ejemplo",
-      "registrationDate": "2024-01-10",
+      "registrationDate": "10/1/2024",
       "activePods": 2,
       "totalPods": 5,
       "balance": 7.50,
@@ -1139,8 +1143,15 @@ Authorization: Bearer <admin_token>
 }
 ```
 
+**Funcionalidades**:
+- `activePods`: Calculado dinámicamente (pods con status 'running' o 'creating')
+- `totalPods`: Total histórico de pods del usuario
+- `status`: 'online' si tuvo actividad en últimos 30 minutos, 'offline' si no
+- Búsqueda por nombre o email con parámetro `search`
+
 **Casos de uso**:
-- Lista de usuarios en `/admin/users`
+- Lista de usuarios en `/admin/users` con estadísticas reales
+- Búsqueda de usuarios por nombre o email
 - Gestión y soporte de usuarios
 
 ---
@@ -1165,17 +1176,115 @@ Authorization: Bearer <admin_token>
 ```json
 {
   "success": true,
-  "message": "Saldo actualizado correctamente",
   "data": {
-    "userId": "user_uuid_1",
-    "newBalance": 25.00
+    "id": "user_uuid_1",
+    "name": "Cliente Ejemplo",
+    "email": "cliente@example.com",
+    "balance": 25.00
   }
 }
 ```
 
+**Restricciones**:
+- No se puede cambiar el saldo de administradores (tienen saldo infinito)
+- Solo administradores pueden usar este endpoint
+
 **Casos de uso**:
 - Asignar saldo desde `/admin/users`
 - Recarga manual de cuentas de usuario
+
+---
+
+### **POST** `/api/auth/users/suspend`
+**Descripción**: Suspender usuario y detener todos sus pods activos (solo administradores)
+
+**Headers requeridos**:
+```
+Authorization: Bearer <admin_token>
+```
+
+**Payload**:
+```json
+{
+  "userId": "user_uuid_1"
+}
+```
+
+**Respuesta exitosa**:
+```json
+{
+  "success": true,
+  "message": "Usuario cliente@example.com suspendido correctamente",
+  "data": {
+    "userId": "user_uuid_1",
+    "userEmail": "cliente@example.com",
+    "podsStopped": 2,
+    "stoppedPods": ["pod-abc123", "pod-def456"]
+  }
+}
+```
+
+**Acciones realizadas**:
+1. Busca todos los pods activos del usuario (status 'running' o 'creating')
+2. Cambia el status de todos los pods a 'stopped'
+3. Actualiza `lastActive` de cada pod
+4. Registra la acción en logs de auditoría
+
+**Restricciones de seguridad**:
+- No se puede suspender a otros administradores
+- Requiere rol de administrador
+
+**Casos de uso**:
+- Suspender usuarios problemáticos desde `/admin/users`
+- Detener todos los recursos de un usuario temporalmente
+- Gestión disciplinaria de usuarios
+
+---
+
+### **DELETE** `/api/auth/users/{userId}`
+**Descripción**: Eliminar usuario completamente con todos sus recursos (solo administradores)
+
+**Parámetros de ruta**:
+- `userId`: ID único del usuario a eliminar
+
+**Headers requeridos**:
+```
+Authorization: Bearer <admin_token>
+```
+
+**Respuesta exitosa**:
+```json
+{
+  "success": true,
+  "message": "Usuario cliente@example.com eliminado correctamente",
+  "data": {
+    "userId": "user_uuid_1",
+    "userEmail": "cliente@example.com",
+    "podsDeleted": 5,
+    "sessionsDeleted": 3,
+    "activePods": 2
+  }
+}
+```
+
+**Acciones realizadas** (en orden):
+1. Verifica que el usuario existe y no es administrador
+2. Obtiene estadísticas de pods para el log
+3. Elimina todos los pods del usuario (`Pod.deleteMany`)
+4. Elimina todas las sesiones del usuario (`Session.deleteMany`)
+5. Registra la acción en logs antes de eliminar
+6. Elimina el registro del usuario (`User.findByIdAndDelete`)
+
+**Restricciones de seguridad**:
+- No se puede eliminar a otros administradores
+- No se puede eliminar a sí mismo
+- Requiere rol de administrador
+- Validaciones completas de entrada
+
+**Casos de uso**:
+- Eliminación permanente de usuarios desde `/admin/users`
+- Limpieza de cuentas inactivas
+- Gestión de usuarios que violaron términos de servicio
 
 ---
 

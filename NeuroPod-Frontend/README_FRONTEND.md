@@ -105,11 +105,11 @@ src/
 │  ├─ pod.service.ts          # Servicios de pods con modo simulación
 │  ├─ pricing.service.ts      # Servicio de precios para comunicación con API
 │  ├─ template.service.ts     # Servicios de templates
-│  ├─ user.service.ts         # Servicios de usuarios (REESCRIBIR SI ES NECESARIO)
+│  ├─ user.service.ts         # Servicios de usuarios
 │  └─ websocket.service.ts    # Servicios de websocket
 ├─ types/
 │  ├─ pod.ts                  # Tipos modernos de pods + SimulatedPod
-│  ├─ templates.ts            # Tipos de templates (completo)
+│  ├─ templates.ts            # Tipos de templates
 │  └─ user.ts                 # Tipos de usuarios
 └─ utils/podUtils.ts          # Utilidades para simulación de pods
 

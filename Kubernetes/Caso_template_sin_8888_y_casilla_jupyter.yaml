@@ -3,6 +3,8 @@
 # =============================================================================
 
 # Pod de prueba ComfyUI con GPU y PVC + integración Jupyter Lab + captura automática de token
+# Se crean carpetas en el PVC y enlaces simbólicos para que ComfyUI use el PVC, 
+# esto porque se sabe que se usara ComfyUI debido a que se introdujo su nombre correspondiente al puerto
 apiVersion: v1
 kind: Pod
 metadata:
@@ -232,14 +234,6 @@ spec:
       # Actualizar sistema e instalar dependencias completas
       apt-get update && apt-get install -y \
         python3 python3-pip python3-venv curl wget
-
-      # Crear estructura de directorios en el PVC
-      mkdir -p /workspace/models/checkpoints
-      mkdir -p /workspace/models/loras  
-      mkdir -p /workspace/models/vae
-      mkdir -p /workspace/output
-      mkdir -p /workspace/input
-      mkdir -p /workspace/notebooks
 
       # Instalar Jupyter Lab y librerías útiles
       pip3 install jupyterlab ipywidgets pandas numpy matplotlib

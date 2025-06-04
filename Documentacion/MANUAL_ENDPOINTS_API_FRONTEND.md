@@ -71,6 +71,11 @@ Cuando el backend no está disponible, el frontend activa automáticamente el **
 }
 ```
 
+**Notas importantes sobre el balance**:
+- Para usuarios **cliente**: balance como número (ej: `10.50`)
+- Para usuarios **admin**: balance como string `"Infinity"`
+- El frontend maneja ambos casos automáticamente
+
 **Casos de uso**:
 - Login principal con Google OAuth2
 - Registro automático de nuevos usuarios
@@ -136,6 +141,11 @@ Authorization: Bearer <token>
   }
 }
 ```
+
+**Notas importantes sobre el balance**:
+- Para usuarios **cliente**: balance como número (ej: `10.50`)
+- Para usuarios **admin**: balance como string `"Infinity"`
+- El backend actualiza automáticamente usuarios admin con balance incorrecto
 
 **Casos de uso**:
 - Verificar sesión al cargar la aplicación
@@ -1130,6 +1140,17 @@ Authorization: Bearer <admin_token>
   "data": [
     {
       "id": "user_uuid_1",
+      "email": "admin@example.com",
+      "name": "Administrador",
+      "registrationDate": "10/1/2024",
+      "activePods": 0,
+      "totalPods": 2,
+      "balance": "Infinity",
+      "status": "online",
+      "role": "admin"
+    },
+    {
+      "id": "user_uuid_2",
       "email": "cliente@example.com",
       "name": "Cliente Ejemplo",
       "registrationDate": "10/1/2024",
@@ -1146,8 +1167,10 @@ Authorization: Bearer <admin_token>
 **Funcionalidades**:
 - `activePods`: Calculado dinámicamente (pods con status 'running' o 'creating')
 - `totalPods`: Total histórico de pods del usuario
-- `status`: 'online' si tuvo actividad en últimos 30 minutos, 'offline' si no
+- `status`: 'online' si tiene sesiones activas en últimas 24 horas, 'offline' si no
+- `balance`: String "Infinity" para admins, número para clientes
 - Búsqueda por nombre o email con parámetro `search`
+- Auto-reparación de balances de admin durante la consulta
 
 **Casos de uso**:
 - Lista de usuarios en `/admin/users` con estadísticas reales
@@ -1288,6 +1311,66 @@ Authorization: Bearer <admin_token>
 
 ---
 
+### **POST** `/api/auth/admin/fix-balances`
+**Descripción**: Reparar balances incorrectos de administradores (solo administradores)
+
+**Headers requeridos**:
+```
+Authorization: Bearer <admin_token>
+```
+
+**Payload**: Ninguno
+
+**Respuesta exitosa**:
+```json
+{
+  "success": true,
+  "message": "Se repararon 2 balances de administradores",
+  "data": {
+    "usersUpdated": 2,
+    "updatedUsers": [
+      {
+        "id": "admin_uuid_1",
+        "email": "admin@example.com",
+        "previousBalance": null,
+        "newBalance": "Infinity"
+      },
+      {
+        "id": "admin_uuid_2",
+        "email": "admin2@example.com",
+        "previousBalance": 10.0,
+        "newBalance": "Infinity"
+      }
+    ]
+  }
+}
+```
+
+**Funcionalidad**:
+1. Busca todos los usuarios con rol 'admin'
+2. Identifica aquellos con balance incorrecto (null, diferente de Infinity, etc.)
+3. Actualiza sus balances a `Number.POSITIVE_INFINITY` en la base de datos
+4. Retorna estadísticas de usuarios reparados
+5. Registra la operación en logs de auditoría
+
+**Casos que repara**:
+- Administradores con `balance: null`
+- Administradores con balance numérico en lugar de infinito
+- Administradores sin campo balance definido
+
+**Casos de uso**:
+- Botón "Reparar Balances" en `/admin/settings` → Pestaña "Sistema"
+- Solución a problemas de migración de datos
+- Mantenimiento rutinario del sistema
+- Reparación después de errores de JSON.stringify(Infinity)
+
+**Restricciones de seguridad**:
+- Solo administradores pueden ejecutar esta operación
+- No afecta a usuarios cliente
+- Operación es idempotente (segura de ejecutar múltiples veces)
+
+---
+
 ## 🔧 Configuración del Cliente API
 
 ### Interceptores de Request
@@ -1343,6 +1426,71 @@ try {
     return getSimulatedData();
   }
 }
+```
+
+---
+
+## 🚨 Notas Importantes sobre Infinity Balance
+
+### **Problema de JSON.stringify(Infinity)**
+
+**Problema identificado**: `JSON.stringify(Infinity)` devuelve `null` en JavaScript.
+
+```javascript
+// Problema:
+const data = { balance: Infinity };
+JSON.stringify(data); // '{"balance":null}'
+
+// Solución implementada:
+const data = { balance: 'Infinity' }; // String
+JSON.stringify(data); // '{"balance":"Infinity"}'
+```
+
+### **Implementación en el Backend**
+
+Todos los endpoints de autenticación envían balance como string para administradores:
+
+```javascript
+// En controladores de auth
+const userBalance = user.role === 'admin' || user.balance === Number.POSITIVE_INFINITY 
+  ? 'Infinity'  // String para JSON
+  : user.balance; // Número para clientes
+```
+
+### **Manejo en el Frontend**
+
+El frontend maneja ambos formatos para compatibilidad:
+
+```typescript
+// Tipos actualizados
+interface User {
+  balance: number | null | 'Infinity'; // Soporta string 'Infinity'
+}
+
+// Función de formateo
+const formatBalance = (balance: number | null | 'Infinity') => {
+  if (balance === 'Infinity' || balance === Infinity) {
+    return '∞ €'; // Símbolo infinito
+  }
+  return `${Number(balance || 0).toFixed(2)} €`;
+};
+```
+
+### **Problemas Solucionados**
+
+1. **Error anterior**: Usuarios admin veían `balance: null` en localStorage
+2. **Causa**: JSON.stringify(Infinity) convertía Infinity a null
+3. **Solución**: Backend envía string 'Infinity' para admins
+4. **Compatibilidad**: Frontend maneja tanto 'Infinity' como Infinity
+5. **Auto-reparación**: Endpoint `/api/auth/admin/fix-balances` para casos antiguos
+
+### **Testing del Balance**
+
+```javascript
+// Verificar en consola del navegador
+console.log(JSON.parse(localStorage.getItem('user')));
+// Admin debe mostrar: balance: "Infinity"
+// Cliente debe mostrar: balance: 10.50 (ejemplo)
 ```
 
 ---

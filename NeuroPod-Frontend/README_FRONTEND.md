@@ -207,7 +207,7 @@ El frontend está preparado para comunicarse con el backend a través de:
 
 ### **1. API REST** (`api.neuropod.online`)
 ```typescript
-// Endpoints implementados en el frontend
+// Endpoints de la API REST consumidos desde el frontend
 // --- Autenticación ---
 POST   /api/auth/google             # Login con Google OAuth2
 POST   /api/auth/mock-login         # Login simulado (desarrollo)
@@ -256,10 +256,6 @@ POST   /api/auth/users/fix-balances # Corregir balances de administradores (admi
 ```typescript
 // Eventos preparados para integración
 'podUpdate'     # Recibe actualizaciones de estado y métricas del pod (unificado)
-'pod-status-changed'     # Cambio de estado del pod
-'pod-stats-updated'      # Actualización de métricas
-'pod-logs-updated'       # Nuevos logs disponibles
-'balance-updated'        # Cambio en saldo del usuario
 ```
 
 ### **3. Modo de Simulación** 🎭
@@ -296,7 +292,7 @@ if (backend_unavailable) {
    ```bash
    # Crea .env.local
    VITE_API_URL=http://localhost:3000
-   VITE_API_URL_HTTPS=https://api.neuropod.com
+   VITE_API_URL_HTTPS=https://api.neuropod.online
    VITE_GOOGLE_CLIENT_ID=tu-google-client-id
    ```
 

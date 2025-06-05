@@ -1,6 +1,6 @@
 # Comandos para verficar que todo funciona correctamente
 
-> **Nota:** Algunos de estos comandos estan bajo el contexto del manifiesto ``test_gpu_pod.yaml``
+> **Nota:** Algunos de estos comandos estan bajo el contexto del manifiesto ``Caso_template_sin_8888.yaml``
 
 ```powershell
 # Verificar que Minikube esté funcionando
@@ -32,7 +32,7 @@ kubectl get pods -n ingress-nginx
 kubectl get configmap nginx-configuration -n ingress-nginx
 
 # Probar el pod de prueba ComfyUI
-kubectl apply -f test_gpu_pod.yaml
+kubectl apply -f Caso_template_sin_8888.yaml
 
 # Verificar que el pod se crea correctamente
 kubectl get pods comfyui-gpu-test

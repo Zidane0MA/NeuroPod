@@ -1,6 +1,6 @@
-# Este script de PowerShell sirve para comprobar los manifestos de Kubernetes arrancados de forma manual (Caso_template_sin_8888-verdadero.yaml)
+# Este script de PowerShell sirve para comprobar los manifestos de Kubernetes arrancados de forma manual (Caso_template_sin_8888.yaml)
 # y verificar que todo está correctamente configurado en un entorno de Minikube con GPU.
-# Requiere que tengas iniciado los servicios de Minikube y cloudflared tunnel.
+# Requiere que tengas iniciado los servicios de Minikube, Minikube tunnel y cloudflared tunnel.
 
 Write-Host "=== Verificando que todo funciona correctamente ===" -ForegroundColor Green
 
@@ -39,7 +39,7 @@ kubectl get pods -n ingress-nginx
 kubectl get configmap nginx-configuration -n ingress-nginx
 
 Write-Host "=== Probar el pod de prueba ComfyUI ===" -ForegroundColor Cyan
-kubectl apply -f test_gpu_pod.yaml
+kubectl apply -f Caso_template_sin_8888.yaml
 kubectl get pods comfyui-gpu-test
 kubectl describe pod comfyui-gpu-test
 

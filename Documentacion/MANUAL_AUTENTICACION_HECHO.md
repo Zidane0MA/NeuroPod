@@ -56,7 +56,7 @@ Para que la autenticación con Google funcione, se debe configurar un proyecto e
 ```
 # API URL
 VITE_API_URL=http://localhost:3000
-VITE_API_URL_HTTPS=https://api.neuropod.com
+VITE_API_URL_HTTPS=https://api.neuropod.online
 # Google OAuth Client ID (desde Google Cloud Console)
 VITE_GOOGLE_CLIENT_ID=tu_google_client_id_aqui
 ```

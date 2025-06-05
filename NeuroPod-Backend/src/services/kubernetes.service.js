@@ -4,6 +4,9 @@
 const k8s = require('@kubernetes/client-node');
 const crypto = require('crypto');
 const { generateUserHash, generateSecureSubdomain } = require('../utils/podHelpers');
+const dotenv = require('dotenv');
+
+dotenv.config();
 
 class KubernetesService {
   constructor() {

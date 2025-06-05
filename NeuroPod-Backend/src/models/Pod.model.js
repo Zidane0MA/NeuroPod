@@ -118,7 +118,6 @@ const PodSchema = new mongoose.Schema({
   podId: {
     type: String,
     required: true,
-    unique: true,
     default: () => require('crypto').randomBytes(8).toString('hex')
   },
   podName: {

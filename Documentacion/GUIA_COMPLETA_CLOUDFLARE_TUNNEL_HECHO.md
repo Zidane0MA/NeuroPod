@@ -65,7 +65,7 @@ Esta guía te ayudará a configurar Cloudflare para tu dominio existente en Host
 
    > **Nota**: Deja estos registros configurados temporalmente con un destino como `example.com` o el dominio actual. Actualizaremos los destinos correctos después de configurar el túnel.
 
-### 2.2. Crear Reglas y Registros DNS para redirección
+### 2.2. Crear Reglas y Registros de Redirección
 
 1. **Crear registro A para el dominio raíz**
    - Tipo: A
@@ -82,25 +82,37 @@ Esta guía te ayudará a configurar Cloudflare para tu dominio existente en Host
      - **Status Code:** "301 - Permanent Redirect"
      - **Destination URL:** `https://app.neuropod.online/$1`
    - **Click "Save and Deploy"**
-3. **Registro para www (este sí puede ser CNAME)**
-   - Tipo: CNAME
+
+3. **Crear registro A para WWW**
+   - Tipo: A
    - Nombre: www
-   - Destino: app.neuropod.online
+   - IPv4 address: 192.0.2.1 (IP placeholder de documentación RFC 3330)
    - Proxy status: 🟠 Activado (Proxied)
    - TTL: Auto
+
+4. **Crear Page Rule para WWW**
+   - Ve a **Cloudflare Dashboard** → **Rules** → **Page Rules**
+   - **Click "Create Page Rule"**
+   - Configurar:
+     - **URL pattern:** `www.neuropod.online/*`
+     - **Setting:** "Forwarding URL"
+     - **Status Code:** "301 - Permanent Redirect"
+     - **Destination URL:** `https://app.neuropod.online/$1`
+   - **Click "Save and Deploy"**
 
 ### 2.3 **Configuración Final Esperada:**
 
 ```
 DNS Records:
 ✅ A    neuropod.online → 192.0.2.1 (🟠 Proxied)
-✅ CNAME www           → app.neuropod.online (🟠 Proxied)
-✅ CNAME api           → 54d974e5-...cfargotunnel.com (🟠 Proxied)
-✅ CNAME app           → 54d974e5-...cfargotunnel.com (🟠 Proxied)  
-✅ CNAME *             → 54d974e5-...cfargotunnel.com (🟠 Proxied)
+✅ A    www             → 192.0.2.1 (🟠 Proxied)
+✅ CNAME api            → 54d974e5-...cfargotunnel.com (🟠 Proxied)
+✅ CNAME app            → 54d974e5-...cfargotunnel.com (🟠 Proxied)  
+✅ CNAME *              → 54d974e5-...cfargotunnel.com (🟠 Proxied)
 
 Page Rules:
-✅ neuropod.online/* → https://app.neuropod.online/$1 (301 Redirect)
+✅ neuropod.online/*     → https://app.neuropod.online/$1 (301)
+✅ www.neuropod.online/* → https://app.neuropod.online/$1 (301)
 ```
 
 #### **¿Por qué esta configuración funciona?**

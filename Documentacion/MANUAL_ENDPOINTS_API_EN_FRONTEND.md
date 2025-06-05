@@ -11,7 +11,7 @@ Esta documentación describe todos los endpoints de la API que utiliza el fronte
 ### URL Base de la API
 ```
 VITE_API_URL=http://localhost:3000
-VITE_API_URL_HTTPS=https://api.neuropod.com
+VITE_API_URL_HTTPS=https://api.neuropod.online
 ```
 
 ### Autenticación

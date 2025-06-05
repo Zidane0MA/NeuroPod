@@ -81,7 +81,7 @@ src/
 
 ```
 
-## API Endpoints creadas
+## Endpoints definidos en el backend (API REST)
 
 ### Rutas Públicas `src/app.js`
 

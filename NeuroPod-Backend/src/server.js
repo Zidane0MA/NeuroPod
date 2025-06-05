@@ -16,10 +16,7 @@ let isShuttingDown = false;
 
 // Conexión a MongoDB
 mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
+  .connect(process.env.MONGODB_URI)
   .then(async () => {
     console.log('✅ Conexión a MongoDB establecida');
     

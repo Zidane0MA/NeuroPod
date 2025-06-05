@@ -6,21 +6,17 @@
 
 ### **Prioridad Alta (Funcionalidad Básica)**
 
-#### 1. **Arreglar Conexión Kubernetes (Estimado: 2-4 horas)**
-```bash
-# Problemas a resolver
-- Verificar configuración @kubernetes/client-node
-- Implementar conexión con cluster Minikube  
-- Debugging de errores de conexión
-- Probar despliegue de pod (Caso_template_sin_8888.yaml)
-```
-
-#### 2. **Actualizar Creación de Pods con Certificados (Estimado: 1-2 horas)**
+#### 1. **Actualizar Creación de Pods con Certificados (Estimado: 1-2 horas)**
 ```bash
 # Usar certificados OpenSSL generados
 - Modificar manifiestos para usar neuropod-tls secret
 - Actualizar controller de pods
 - Probar creación manual vs automática
+```
+
+#### 2. **Implementar WebSockets para Actualizaciones en Tiempo Real**
+```bash
+- Implementar lógica completa de actualización en tiempo real para el estado de los pods
 ```
 
 ---

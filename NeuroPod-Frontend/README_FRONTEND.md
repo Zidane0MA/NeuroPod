@@ -245,13 +245,17 @@ PUT    /api/pricing                 # Actualizar la configuración de precios (a
 POST   /api/pricing/reset           # Restablecer valores de los precios (admin)
 
 // --- Usuarios (admin) ---
-GET    /api/auth/users              # Listar usuarios (falta)
-POST   /api/auth/users/balance      # Actualizar saldo de usuario (falta)
+GET    /api/auth/users              # Listar todos los usuarios (admin)
+POST   /api/auth/users/balance      # Actualizar saldo de un usuario (admin)
+POST   /api/auth/users/suspend      # Suspender un usuario (admin)
+DELETE /api/auth/users/:userId      # Eliminar un usuario (admin)
+POST   /api/auth/users/fix-balances # Corregir balances de administradores (admin)
 ```
 
-### **2. WebSockets** (preparado)
+### **2. WebSockets** (estado actual)
 ```typescript
 // Eventos preparados para integración
+'podUpdate'     # Recibe actualizaciones de estado y métricas del pod (unificado)
 'pod-status-changed'     # Cambio de estado del pod
 'pod-stats-updated'      # Actualización de métricas
 'pod-logs-updated'       # Nuevos logs disponibles
@@ -262,7 +266,7 @@ POST   /api/auth/users/balance      # Actualizar saldo de usuario (falta)
 ```typescript
 // Detección automática
 if (backend_unavailable) {
-  return getSimulatedPods(user); // Modo simulación
+  return getSimulatedPods(user); // Modo simulacion
 } else {
   return await api.get('/api/pods'); // Backend real
 }
@@ -319,7 +323,7 @@ El frontend incluye un sistema de simulación completo que permite:
 | Variable | Descripción | Valor por defecto |
 |----------|-------------|-------------------|
 | `VITE_API_URL` | URL del backend | `http://localhost:3000` |
-| `VITE_API_URL_HTTPS` | URL del backend (HTTPS) | `https://api.neuropod.com` |
+| `VITE_API_URL_HTTPS` | URL del backend (HTTPS) | `https://api.neuropod.online` |
 | `VITE_GOOGLE_CLIENT_ID` | ID de cliente OAuth2 | - |
 
 ## 🚨 Notas Importantes

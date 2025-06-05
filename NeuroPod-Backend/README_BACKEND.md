@@ -43,7 +43,7 @@ src/
 ├── controllers/          # Controladores para la lógica de negocio
 │   ├── auth.controller.js      # Autenticación y gestión de usuarios
 │   ├── pod.controller.js       # Gestión de pods en Kubernetes
-│   ├── princing.controller.js  # Gestión de precios de las GPU
+│   ├── pricing.controller.js  # Gestión de precios de las GPU
 │   ├── status.controller.js    # Estado del sistema
 │   └── template.controller.js  # Gestión de plantillas
 │
@@ -59,9 +59,9 @@ src/
 │   └── User.model.js           # Usuarios y roles
 │
 ├── routes/               # Definición de rutas API
-│   ├── auth.routes.js          # Rutas de autenticación
+│   ├── auth.routes.js          # Rutas de autenticación y gestion de usuarios
 │   ├── pod.routes.js           # Rutas para pods
-│   ├── princing.routes.js      # Rutas para precios
+│   ├── pricing.routes.js      # Rutas para precios
 │   ├── status.routes.js        # Rutas para estado del sistema
 │   └── template.routes.js      # Rutas para plantillas
 │
@@ -103,8 +103,11 @@ src/
 
 ### Administración de Usuarios (Admin) - `src/routes/auth.routes.js`
 
-- ✅ GET `/api/auth/users` - Obtener lista de usuarios
-- ✅ POST `/api/auth/users/balance` - Actualizar saldo de usuario
+- ✅ GET `/api/auth/users` - Listar todos los usuarios (solo administradores)
+- ✅ POST `/api/auth/users/balance` - Actualizar el saldo de un usuario (solo administradores)
+- ✅ POST `/api/auth/users/suspend` - Suspender un usuario (solo administradores)
+- ✅ DELETE `/api/auth/users/:userId` - Eliminar un usuario (solo administradores)
+- ✅ POST `/api/auth/users/fix-balances` - Corregir balances de administradores (solo administradores)
 
 ### Gestión de Pods `src\routes\pod.routes.js`
 
@@ -135,6 +138,21 @@ src/
 - ✅ GET `/api/pricing/gpus/:gpuId` - Obtener información detallada de una GPU específica (requiere autenticación)
 - ✅ PUT `/api/pricing` - Actualizar la configuración de precios (solo administradores)
 - ✅ POST `/api/pricing/reset` - Restablecer los precios a los valores predeterminados (solo administradores)
+
+## WebSockets
+
+### Eventos WebSocket en `src/socket.js`
+- ✅ `connection` - Establecer conexión WebSocket
+- ✅ `disconnect` - Manejar desconexiones
+- ✅ `subscribe` / `unsubscribe` - Suscribirse/desuscribirse a salas de pods
+- ✅ `requestLogs` - Solicitar logs de un pod
+- ✅ `podUpdate` - Actualización de estado de un pod
+- ✅ `podLogs` - Enviar logs de un pod
+- ✅ `podCreated` - Notificar creación de un nuevo pod
+- ✅ `podDeleted` - Notificar eliminación de un pod
+- ✅ `adminNotification` - Notificación a administradores
+- ✅ `lowBalanceAlert` - Alerta de saldo bajo
+- ✅ `ping` / `pong` - Mantener conexión viva
 
 ## 🛠️ Desarrollo Local
 
@@ -169,7 +187,7 @@ src/
    npm run seed
    ```
 6. **Acceder a la API**:
-   - La API estará disponible en `http://localhost:3000/api`
+   - La API estará disponible en `http://localhost:3000/api/health` o `https://api.neuropod.online/api/health` si estás en producción.
 
 ## Cambios Pendientes por Implementar
 

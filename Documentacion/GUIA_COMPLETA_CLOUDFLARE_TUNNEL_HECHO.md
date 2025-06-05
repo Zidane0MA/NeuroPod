@@ -65,23 +65,51 @@ Esta guía te ayudará a configurar Cloudflare para tu dominio existente en Host
 
    > **Nota**: Deja estos registros configurados temporalmente con un destino como `example.com` o el dominio actual. Actualizaremos los destinos correctos después de configurar el túnel.
 
-### 2.1. Crear Registros DNS para redireccion
+### 2.2. Crear Reglas y Registros DNS para redirección
 
-2. Agregar/editar los siguientes registros:
-
-   **Registro para dominio:**
-   - Tipo: CNAME
-   - Nombre: neuropod.online
-   - Destino: app.neuropod.online
-   - Proxy status: Activado (Proxied)
+1. **Crear registro A para el dominio raíz**
+   - Tipo: A
+   - Nombre: neuropod.online (o simplemente @)
+   - IPv4 address: 192.0.2.1 (IP placeholder de documentación RFC 3330)
+   - Proxy status: 🟠 Activado (Proxied)
    - TTL: Auto
-
-   **Registro para www:**
+2. **Crear Page Rule para redirección**
+   - Ve a **Cloudflare Dashboard** → **Rules** → **Page Rules**
+   - **Click "Create Page Rule"**
+   - Configurar:
+     - **URL pattern:** `neuropod.online/*`
+     - **Setting:** "Forwarding URL"
+     - **Status Code:** "301 - Permanent Redirect"
+     - **Destination URL:** `https://app.neuropod.online/$1`
+   - **Click "Save and Deploy"**
+3. **Registro para www (este sí puede ser CNAME)**
    - Tipo: CNAME
    - Nombre: www
    - Destino: app.neuropod.online
-   - Proxy status: Activado (Proxied)
+   - Proxy status: 🟠 Activado (Proxied)
    - TTL: Auto
+
+### 2.3 **Configuración Final Esperada:**
+
+```
+DNS Records:
+✅ A    neuropod.online → 192.0.2.1 (🟠 Proxied)
+✅ CNAME www           → app.neuropod.online (🟠 Proxied)
+✅ CNAME api           → 54d974e5-...cfargotunnel.com (🟠 Proxied)
+✅ CNAME app           → 54d974e5-...cfargotunnel.com (🟠 Proxied)  
+✅ CNAME *             → 54d974e5-...cfargotunnel.com (🟠 Proxied)
+
+Page Rules:
+✅ neuropod.online/* → https://app.neuropod.online/$1 (301 Redirect)
+```
+
+#### **¿Por qué esta configuración funciona?**
+
+1. **Registro A con IP placeholder:** `192.0.2.1` es una IP de documentación que nunca se usa en producción
+2. **Proxy activado:** Cloudflare intercepta todo el tráfico a `neuropod.online`
+3. **Page Rule:** Captura las requests y las redirige automáticamente a `app.neuropod.online`
+4. **El usuario nunca llega** a la IP `192.0.2.1` porque Cloudflare procesa la redirección primero
+5. **CNAME para www:** Permite que `www.neuropod.online` también redirija correctamente a la aplicación
 
 ## 3. Configurar Cloudflare Tunnel en Windows
 

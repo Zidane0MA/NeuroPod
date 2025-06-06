@@ -267,7 +267,6 @@ PodSchema.virtual('formattedUptime').get(function() {
   return `${hours}h ${minutes}m`;
 });
 
-// Método virtual para calcular el coste por hora
 // Método virtual para calcular el coste por hora (DEPRECATED)
 PodSchema.virtual('costPerHour').get(function() {
   // NOTA: Este virtual está deprecated. Usar Pricing.calculateCost() en su lugar

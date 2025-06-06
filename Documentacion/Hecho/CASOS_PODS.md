@@ -61,3 +61,47 @@ Modificar NeuroPod-Backend\src\utils\podHelpers.js, NeuroPod-Backend\src\service
       - En caso de que el usuario ingrese mas puertos en `/pods/deploy`, estos apareceran como (HTTP service → :"puerto") dentro del modal y el nombre sera (Servicio "numero del servicio del 1 al 10")
     - Logs (Modal con logs del contenedor del pod)
   - Actualizar estado desde backend si un pod cae por sistema
+
+
+/**
+* Controlador para la gestión de recursos del pod.
+*
+* Puntos de conexión principales:
+* - getPods: Obtener todos los pods del usuario actual o de un usuario específico (solo administrador).
+* - getPodConnections: Obtener información de conexión de un pod específico.
+* - createPod: Crear un nuevo pod con la configuración especificada.
+* - startPod: Iniciar un pod detenido.
+* - stopPod: Detener un pod en ejecución.
+* - deletePod: Eliminar un pod y sus recursos.
+* - getPodLogs: Recuperar registros de un pod específico.
+*
+* Funciones auxiliares:
+* - findPodWithAccess: Buscar un pod por podId y comprobar el acceso del usuario.
+* - validatePodState: Validar el estado actual de un pod.
+* - updatePodStatus: Actualizar el estado de un pod y sus servicios.
+* - handleControllerError: Gestión de errores estandarizada para las respuestas del controlador. 
+*
+* Funciones de lógica de negocio:
+* - getPodsForUser: Recupera pods para un usuario, con lógica de administrador/usuario.
+* - determinePodOwner: Determina el propietario de un pod (para la asignación de administrador).
+* - validateUserBalance: Comprueba si un usuario tiene saldo suficiente para crear un pod.
+* - createPodRecord: Crea un nuevo documento de pod en la base de datos.
+* - deductBalanceIfClient: Resta saldo de un usuario cliente tras la creación del pod.
+* - getPodLogsContent: Recupera registros de Kubernetes para un pod.
+* - stopPodResources: Detiene y limpia los recursos de Kubernetes para un pod.
+*
+* Funciones asíncronas de Kubernetes:
+* - createKubernetesResourcesAsync: Crea recursos de Kubernetes para un pod de forma asíncrona.
+* - recreateKubernetesResourcesAsync: Recrea recursos de Kubernetes para un pod de forma asíncrona.
+* - deleteKubernetesResourcesAsync: Elimina de forma asíncrona los recursos de Kubernetes de un pod.
+* - scheduleJupyterTokenCapture: Programa la recuperación del token de Jupyter tras la creación del pod.
+*
+* Funciones de validación y configuración:
+* - validatePodPayload: Valida la carga útil para la creación del pod.
+* - processPodConfiguration: Procesa y asigna la configuración para la creación del pod.
+* - assignServiceNames / assignServiceNamesDocker: Asigna nombres de servicio a los puertos.
+* - createServiceObject: Ayuda para crear un objeto de servicio para un pod.
+* - calculatePodCost / calculatePodCostAsync: Calcula el coste estimado de un pod.
+*
+* @module controllers/pod.controller
+*/

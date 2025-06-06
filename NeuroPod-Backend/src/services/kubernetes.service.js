@@ -19,17 +19,18 @@ class KubernetesService {
         this.kc.loadFromDefault(); // Siempre fuera del cluster
         this.k8sApi = this.kc.makeApiClient(k8s.CoreV1Api);
         this.k8sNetworkingApi = this.kc.makeApiClient(k8s.NetworkingV1Api);
-        console.log('✅ Kubernetes client initialized successfully (production, fuera del cluster)');
+        console.log('✅ Kubernetes client initialized successfully');
       } else {
         // En desarrollo: solo simulación
         throw new Error('Modo simulación forzado en desarrollo');
       }
     } catch (error) {
       console.warn('⚠️  Kubernetes not available, running in simulation mode:', error.message);
-      console.log('🔍 DEBUG - Error durante inicialización:', error.message);
       this.k8sApi = null;
       this.k8sNetworkingApi = null;
     }
+    
+    console.log('✅ KubernetesService initialized - Available:', this.isKubernetesAvailable());
   }
 
   // Verificar si Kubernetes está disponible
@@ -459,7 +460,7 @@ class KubernetesService {
     try {
       // Eliminar pod
       try {
-        await this.k8sApi.deleteNamespacedPod(podFullName, 'default', undefined, undefined, 0);
+        await this.k8sApi.deleteNamespacedPod({ name: podFullName, namespace: 'default' });
         console.log(`✅ Pod ${podFullName} deleted`);
       } catch (err) {
         if (err.statusCode !== 404) {
@@ -470,7 +471,7 @@ class KubernetesService {
       // Eliminar services e ingress
       for (const service of services) {
         try {
-          await this.k8sApi.deleteNamespacedService(service.serviceName, 'default');
+          await this.k8sApi.deleteNamespacedService({ name: service.serviceName, namespace: 'default' });
           console.log(`✅ Service ${service.serviceName} deleted`);
         } catch (err) {
           if (err.statusCode !== 404) {
@@ -479,7 +480,7 @@ class KubernetesService {
         }
         
         try {
-          await this.k8sNetworkingApi.deleteNamespacedIngress(service.ingressName, 'default');
+          await this.k8sNetworkingApi.deleteNamespacedIngress({ name: service.ingressName, namespace: 'default' });
           console.log(`✅ Ingress ${service.ingressName} deleted`);
         } catch (err) {
           if (err.statusCode !== 404) {
@@ -491,7 +492,7 @@ class KubernetesService {
       // Eliminar PVC específico del pod
       if (pvcName) {
         try {
-          await this.k8sApi.deleteNamespacedPersistentVolumeClaim(pvcName, 'default');
+          await this.k8sApi.deleteNamespacedPersistentVolumeClaim({ name: pvcName, namespace: 'default' });
           console.log(`✅ PVC ${pvcName} deleted`);
         } catch (err) {
           if (err.statusCode !== 404) {
@@ -764,11 +765,11 @@ class KubernetesService {
         // Verificar si el pod correspondiente existe
         const podName = service.metadata.labels.app + '-' + service.metadata.labels.user;
         try {
-          await this.k8sApi.readNamespacedPod(podName, 'default');
+          await this.k8sApi.readNamespacedPod({ name: podName, namespace: 'default' });
         } catch (error) {
           if (error.statusCode === 404) {
             // El pod no existe, eliminar el service
-            await this.k8sApi.deleteNamespacedService(service.metadata.name, 'default');
+            await this.k8sApi.deleteNamespacedService({ name: service.metadata.name, namespace: 'default' });
             console.log(`🧹 Cleaned up orphaned service: ${service.metadata.name}`);
           }
         }
@@ -780,10 +781,10 @@ class KubernetesService {
       for (const ingress of ingresses.items) {
         const podName = ingress.metadata.labels.app + '-' + ingress.metadata.labels.user;
         try {
-          await this.k8sApi.readNamespacedPod(podName, 'default');
+          await this.k8sApi.readNamespacedPod({ name: podName, namespace: 'default' });
         } catch (error) {
           if (error.statusCode === 404) {
-            await this.k8sNetworkingApi.deleteNamespacedIngress(ingress.metadata.name, 'default');
+            await this.k8sNetworkingApi.deleteNamespacedIngress({ name: ingress.metadata.name, namespace: 'default' });
             console.log(`🧹 Cleaned up orphaned ingress: ${ingress.metadata.name}`);
           }
         }

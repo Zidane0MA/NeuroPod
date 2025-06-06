@@ -96,6 +96,12 @@ class PodMonitorService {
       // Obtener estado actual desde Kubernetes
       const kubernetesData = await kubernetesService.getPodStatus(podName, userHash);
       
+      // Validar que kubernetesData no sea undefined
+      if (!kubernetesData) {
+        console.warn(`⚠️  No se pudo obtener estado de K8s para pod ${podName}`);
+        return;
+      }
+      
       // Verificar si hay cambios
       let hasChanges = false;
       const previousStatus = pod.status;

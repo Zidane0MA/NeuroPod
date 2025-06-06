@@ -245,10 +245,14 @@ PodSchema.pre('save', function(next) {
     
     // Generar nombres de recursos de Kubernetes si están vacíos
     if (!this.kubernetesResources.podName && this.podName && this.userHash) {
-      this.kubernetesResources.podName = `${this.podName}-${this.userHash}`;
+      // 🔧 SANITIZAR: Asegurar nombres válidos para Kubernetes (minúsculas, sin caracteres especiales)
+      const sanitizedPodName = this.podName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      this.kubernetesResources.podName = `${sanitizedPodName}-${this.userHash}`;
     }
     if (!this.kubernetesResources.pvcName && this.podName && this.userHash) {
-      this.kubernetesResources.pvcName = `pvc-${this.podName}-${this.userHash}`;
+      // 🔧 SANITIZAR: Asegurar nombres válidos para Kubernetes (minúsculas, sin caracteres especiales)
+      const sanitizedPodName = this.podName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      this.kubernetesResources.pvcName = `pvc-${sanitizedPodName}-${this.userHash}`;
     }
     
     next();

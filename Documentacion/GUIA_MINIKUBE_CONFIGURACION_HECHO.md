@@ -76,6 +76,9 @@ minikube addons enable default-storageclass
 # Necesitas instalar el device plugin de NVIDIA para Minikube:
 minikube addons enable nvidia-device-plugin
 
+# Eliminar StorageClass por defecto (sera reemplazada por neuropod-k8s.yaml)
+kubectl delete storageclass standard
+
 ## Manifiestos Kubernetes para NeuroPod
 kubectl apply -f neuropod-k8s.yaml
 

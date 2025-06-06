@@ -34,11 +34,6 @@ Start-Sleep -Seconds 23
 Write-Host "Esperando a que Minikube esté listo..."
 
 # ===============================
-# Iniciar Minikube Tunnel
-# ===============================
-wt -w 0 nt -p "Windows PowerShell" --title "Minikube Tunnel" powershell -NoExit -Command "minikube tunnel"
-
-# ===============================
 # Iniciar MongoDB (ajusta versión)
 # ===============================
 if (-not (Test-Path "C:\data\db")) {
@@ -46,3 +41,8 @@ if (-not (Test-Path "C:\data\db")) {
 }
 wt -w 0 nt -p "Windows PowerShell" --title "MongoDB" powershell -NoExit -Command "& 'C:\Program Files\MongoDB\Server\8.0\bin\mongod.exe' --dbpath='C:\data\db'"
 Start-Sleep -Seconds 10
+
+# ===============================
+# Iniciar Minikube Tunnel
+# ===============================
+wt -w 0 nt -p "Windows PowerShell" --title "Minikube Tunnel" powershell -NoExit -Command "minikube tunnel"

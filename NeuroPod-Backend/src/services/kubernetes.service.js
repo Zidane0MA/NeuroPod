@@ -36,15 +36,14 @@ class KubernetesService {
     return this.k8sApi !== null && this.k8sNetworkingApi !== null;
   }
 
-  // Crear PVC para el usuario si no existe (CAMBIAR: EL PVC SE CREARA JUNTO AL POD Y NO SE REUTILIZARA EN OTROs PODS)
-  async createOrVerifyUserPVC(userId, volumeDiskSize) {
+  // Crear PVC específico para cada pod
+  async createPodPVC(podName, userHash, volumeDiskSize) {
     if (!this.isKubernetesAvailable()) {
-      console.log('🔧 [SIMULATION] Creating PVC for user:', userId);
-      return `workspace-${generateUserHash(userId)}`;
+      console.log('🔧 [SIMULATION] Creating PVC for pod:', podName);
+      return `pvc-${podName}-${userHash}`;
     }
 
-    const userHash = generateUserHash(userId);
-    const pvcName = `workspace-${userHash}`;
+    const pvcName = `pvc-${podName}-${userHash}`;
     
     try {
       // Verificar si ya existe
@@ -61,6 +60,7 @@ class KubernetesService {
             name: pvcName,
             labels: {
               app: 'neuropod',
+              pod: podName,
               user: userHash,
               'neuropod.online/resource': 'pvc'
             }
@@ -227,11 +227,11 @@ class KubernetesService {
       console.log(`📊 Configuration: ${dockerImage}, ${gpu}, ${containerDiskSize}GB container, ${volumeDiskSize}GB volume`);
       console.log(`🔌 Ports: ${portsArray.join(', ')}`);
       
-      // 1. Crear o verificar PVC para el usuario
-      const pvcName = await this.createOrVerifyUserPVC(userId, volumeDiskSize);
+      // 1. Crear PVC específico para este pod
+      const pvcName = await this.createPodPVC(podName, userHash, volumeDiskSize);
       
       // 2. Crear el Pod principal
-      await this.createMainPod(podName, userHash, dockerImage, portsArray, containerDiskSize, volumeDiskSize, gpu, enableJupyter);
+      await this.createMainPod(podName, userHash, dockerImage, portsArray, containerDiskSize, volumeDiskSize, gpu, enableJupyter, pvcName);
       
       // 3. Crear Service e Ingress para cada puerto
       const services = [];
@@ -266,14 +266,13 @@ class KubernetesService {
   }
 
   // Crear el Pod principal
-  async createMainPod(podName, userHash, dockerImage, ports, containerDiskSize, volumeDiskSize, gpu, enableJupyter) {
+  async createMainPod(podName, userHash, dockerImage, ports, containerDiskSize, volumeDiskSize, gpu, enableJupyter, pvcName) {
     if (!this.isKubernetesAvailable()) {
       console.log(`🔧 [SIMULATION] Creating main pod ${podName}-${userHash}`);
       return;
     }
 
     const podFullName = `${podName}-${userHash}`;
-    const pvcName = `workspace-${userHash}`;
     
     // Configurar límites de recursos
     const resourceLimits = {
@@ -403,7 +402,7 @@ class KubernetesService {
   }
 
   // Eliminar todos los recursos de un pod
-  async deletePodResources(podName, userHash, services = []) {
+  async deletePodResources(podName, userHash, services = [], pvcName = null) {
     if (!this.isKubernetesAvailable()) {
       console.log(`🔧 [SIMULATION] Deleting resources for ${podName}-${userHash}`);
       return;
@@ -440,6 +439,18 @@ class KubernetesService {
         } catch (err) {
           if (err.statusCode !== 404) {
             console.warn(`⚠️  Warning deleting ingress: ${err.message}`);
+          }
+        }
+      }
+      
+      // Eliminar PVC específico del pod
+      if (pvcName) {
+        try {
+          await this.k8sApi.deleteNamespacedPersistentVolumeClaim(pvcName, 'default');
+          console.log(`✅ PVC ${pvcName} deleted`);
+        } catch (err) {
+          if (err.statusCode !== 404) {
+            console.warn(`⚠️  Warning deleting PVC: ${err.message}`);
           }
         }
       }

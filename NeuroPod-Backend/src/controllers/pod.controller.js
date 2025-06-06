@@ -157,7 +157,7 @@ exports.deletePod = async (req, res) => {
     
     // Detener el pod primero si está en ejecución
     if (['running', 'creating'].includes(pod.status)) {
-      await stopPodResources(pod);
+      await stopPodResources(pod, true); // true = eliminar PVC
     }
     
     // Eliminar el pod de la base de datos
@@ -382,14 +382,19 @@ async function getPodLogsContent(pod) {
   }
 }
 
-async function stopPodResources(pod) {
+async function stopPodResources(pod, deletePVC = false) {
   const services = pod.httpServices.map(service => ({
     serviceName: service.kubernetesServiceName,
     ingressName: service.kubernetesIngressName
   }));
   
   try {
-    await kubernetesService.deletePodResources(pod.podName, pod.userHash, services);
+    await kubernetesService.deletePodResources(
+      pod.podName, 
+      pod.userHash, 
+      services,
+      deletePVC ? pod.kubernetesResources.pvcName : null
+    );
   } catch (err) {
     console.warn('Warning al eliminar recursos K8s:', err.message);
   }
@@ -456,7 +461,7 @@ function recreateKubernetesResourcesAsync(pod) {
 function deleteKubernetesResourcesAsync(pod) {
   setImmediate(async () => {
     try {
-      await stopPodResources(pod);
+      await stopPodResources(pod, false); // false = conservar PVC
       await updatePodStatus(pod, 'stopped');
     } catch (err) {
       console.error('Error deteniendo pod:', err);

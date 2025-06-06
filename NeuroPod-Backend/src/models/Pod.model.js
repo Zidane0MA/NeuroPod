@@ -247,8 +247,8 @@ PodSchema.pre('save', function(next) {
     if (!this.kubernetesResources.podName && this.podName && this.userHash) {
       this.kubernetesResources.podName = `${this.podName}-${this.userHash}`;
     }
-    if (!this.kubernetesResources.pvcName && this.userHash) {
-      this.kubernetesResources.pvcName = `workspace-${this.userHash}`;
+    if (!this.kubernetesResources.pvcName && this.podName && this.userHash) {
+      this.kubernetesResources.pvcName = `pvc-${this.podName}-${this.userHash}`;
     }
     
     next();

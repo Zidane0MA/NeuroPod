@@ -9,25 +9,19 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 class KubernetesService {
-  constructor() {
-    // 🔍 DEBUG: Configuración de entorno
-    console.log('🔍 DEBUG KubernetesService constructor - NODE_ENV:', process.env.NODE_ENV);
-    
+  constructor() {    
     // Configurar cliente de Kubernetes
     this.kc = new k8s.KubeConfig();
     
     try {
       // En producción: siempre fuera del cluster
       if (process.env.NODE_ENV === 'production') {
-        console.log('🔍 DEBUG - Intentando conectar a Kubernetes (modo producción)');
         this.kc.loadFromDefault(); // Siempre fuera del cluster
         this.k8sApi = this.kc.makeApiClient(k8s.CoreV1Api);
         this.k8sNetworkingApi = this.kc.makeApiClient(k8s.NetworkingV1Api);
         console.log('✅ Kubernetes client initialized successfully (production, fuera del cluster)');
-        console.log('🔍 DEBUG - Cliente de Kubernetes creado exitosamente');
       } else {
         // En desarrollo: solo simulación
-        console.log('🔍 DEBUG - Forzando modo simulación (desarrollo)');
         throw new Error('Modo simulación forzado en desarrollo');
       }
     } catch (error) {
@@ -36,11 +30,6 @@ class KubernetesService {
       this.k8sApi = null;
       this.k8sNetworkingApi = null;
     }
-    
-    // 🔍 DEBUG: Estado final
-    console.log('🔍 DEBUG - Estado final del constructor:');
-    console.log('🔍 DEBUG - this.k8sApi:', !!this.k8sApi);
-    console.log('🔍 DEBUG - this.k8sNetworkingApi:', !!this.k8sNetworkingApi);
   }
 
   // Verificar si Kubernetes está disponible
@@ -49,16 +38,7 @@ class KubernetesService {
   }
 
   // Crear PVC específico para cada pod
-  async createPodPVC(podName, userHash, volumeDiskSize) {
-    // 🔍 DEBUG: Verificar configuración de entorno
-    console.log('🔍 DEBUG createPodPVC - NODE_ENV:', process.env.NODE_ENV);
-    console.log('🔍 DEBUG createPodPVC - isKubernetesAvailable():', this.isKubernetesAvailable());
-    
-    // 🔍 DEBUG: Verificar parámetros
-    console.log('🔍 DEBUG createPodPVC - podName:', podName);
-    console.log('🔍 DEBUG createPodPVC - userHash:', userHash);
-    console.log('🔍 DEBUG createPodPVC - volumeDiskSize:', volumeDiskSize);
-    
+  async createPodPVC(podName, userHash, volumeDiskSize) {    
     if (!this.isKubernetesAvailable()) {
       console.log('🔧 [SIMULATION] Creating PVC for pod:', podName);
       return `pvc-${podName}-${userHash}`;
@@ -69,75 +49,40 @@ class KubernetesService {
       throw new Error(`Parámetros inválidos - podName: '${podName}', userHash: '${userHash}'`);
     }
     
-    // 🔧 SANITIZAR: Convertir a minúsculas y reemplazar caracteres no válidos
+    // Sanitizar nombre del pod y generar nombre del PVC
     const sanitizedPodName = podName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
     const pvcName = `pvc-${sanitizedPodName}-${userHash}`;
-    console.log('🔍 DEBUG createPodPVC - pvcName generated:', pvcName);
+    console.log('✅ Generated PVC name:', pvcName);
     
     try {
-      // 🔍 DEBUG ADICIONAL: Verificar que pvcName no sea null antes de la llamada
-      console.log('🔍 DEBUG - Antes de readNamespacedPersistentVolumeClaim:');
-      console.log('🔍 DEBUG - pvcName tipo:', typeof pvcName);
-      console.log('🔍 DEBUG - pvcName valor:', JSON.stringify(pvcName));
-      console.log('🔍 DEBUG - pvcName length:', pvcName ? pvcName.length : 'N/A');
-      
+      // Validar parámetros antes de llamar a la API
       if (!pvcName) {
         throw new Error('pvcName es null o undefined antes de llamar a Kubernetes API');
       }
-      
-      // 🔍 DEBUG: Verificar estado del cliente de Kubernetes
-      console.log('🔍 DEBUG - this.k8sApi existe:', !!this.k8sApi);
-      console.log('🔍 DEBUG - readNamespacedPersistentVolumeClaim es función:', typeof this.k8sApi.readNamespacedPersistentVolumeClaim);
       
       if (!this.k8sApi || typeof this.k8sApi.readNamespacedPersistentVolumeClaim !== 'function') {
         throw new Error('Cliente de Kubernetes no está correctamente inicializado');
       }
       
-      // 🔍 DEBUG: Verificar acceso al namespace
-      try {
-        console.log('🔍 DEBUG - Probando acceso al namespace default...');
-        const listResponse = await this.k8sApi.listNamespacedPersistentVolumeClaim({ namespace: 'default' });
-        console.log('🔍 DEBUG - Acceso al namespace default OK, PVCs encontrados:', listResponse.body?.items?.length || 0);
-      } catch (namespaceError) {
-        console.log('🔍 DEBUG - Error accediendo namespace default:', namespaceError.message);
-        // Intentar sintaxis alternativa
-        try {
-          console.log('🔍 DEBUG - Probando sintaxis alternativa...');
-          const altResponse = await this.k8sApi.listNamespacedPersistentVolumeClaim('default');
-          console.log('🔍 DEBUG - Sintaxis alternativa funcionó');
-        } catch (altError) {
-          console.log('🔍 DEBUG - Sintaxis alternativa también falló:', altError.message);
-          throw new Error(`No se puede acceder al namespace default: ${namespaceError.message}`);
-        }
-      }
+
       
-      // 🔍 DEBUG: Mostrar parámetros exactos que se van a pasar
-      console.log('🔍 DEBUG - Parámetros para readNamespacedPersistentVolumeClaim:');
-      console.log('🔍 DEBUG - Parámetro 1 (name):', JSON.stringify(pvcName));
-      console.log('🔍 DEBUG - Parámetro 2 (namespace):', JSON.stringify('default'));
-      console.log('🔍 DEBUG - Llamando a this.k8sApi.readNamespacedPersistentVolumeClaim...');
-      
-      // Verificar si ya existe - usando sintaxis de objeto
+      // Verificar si ya existe
       try {
         await this.k8sApi.readNamespacedPersistentVolumeClaim({ name: pvcName, namespace: 'default' });
         console.log(`✅ PVC ${pvcName} already exists`);
         return pvcName;
-      } catch (objError) {
-        console.log('🔍 DEBUG - Resultado de readNamespacedPersistentVolumeClaim:', objError.statusCode || objError.status || objError.code);
-        
+      } catch (error) {
         // Si es 404, el PVC no existe - esto es normal, proceder a crearlo
-        if (objError.statusCode === 404 || objError.status === 404 || objError.code === 404) {
-          console.log('🔍 DEBUG - PVC no existe (404), procediendo a crearlo');
+        if (error.statusCode === 404 || error.status === 404 || error.code === 404) {
+          console.log('🔍 PVC no existe, procediendo a crearlo');
           // Continuar al bloque de creación
         } else {
           // Si es otro error, lanzar la excepción
-          console.log('🔍 DEBUG - Error diferente de 404:', objError.message);
-          throw objError;
+          throw error;
         }
       }
       
-      // Llegar aquí significa que el PVC no existe (404), así que lo creamos
-      console.log('🔍 DEBUG - Creando PVC porque no existe...');
+      // Crear PVC ya que no existe
       
       const pvc = {
         apiVersion: 'v1',
@@ -162,13 +107,8 @@ class KubernetesService {
         }
       };
       
-      // Intentar crear con sintaxis de objeto primero
-      try {
-        await this.k8sApi.createNamespacedPersistentVolumeClaim({ namespace: 'default', body: pvc });
-      } catch (objCreateError) {
-        console.log('🔍 DEBUG - Sintaxis de objeto para crear falló, probando sintaxis posicional:', objCreateError.message);
-        await this.k8sApi.createNamespacedPersistentVolumeClaim('default', pvc);
-      }
+      // Crear PVC
+      await this.k8sApi.createNamespacedPersistentVolumeClaim({ namespace: 'default', body: pvc });
       console.log(`✅ PVC ${pvcName} created successfully (${volumeDiskSize}Gi)`);
       return pvcName;
       
@@ -185,7 +125,7 @@ class KubernetesService {
       return `${podName}-${userHash}-${port}-service`;
     }
 
-    // 🔧 SANITIZAR: Asegurar nombres válidos para Kubernetes
+    // Sanitizar nombre y generar nombre del service
     const sanitizedPodName = podName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
     const serviceName = `${sanitizedPodName}-${userHash}-${port}-service`;
     
@@ -217,13 +157,8 @@ class KubernetesService {
     };
     
     try {
-      // Intentar crear con sintaxis de objeto primero
-      try {
-        await this.k8sApi.createNamespacedService({ namespace: 'default', body: service });
-      } catch (objCreateError) {
-        console.log('🔍 DEBUG - Sintaxis de objeto para crear service falló, probando sintaxis posicional:', objCreateError.message);
-        await this.k8sApi.createNamespacedService('default', service);
-      }
+      // Crear Service
+      await this.k8sApi.createNamespacedService({ namespace: 'default', body: service });
       console.log(`✅ Service ${serviceName} created`);
       return serviceName;
     } catch (error) {
@@ -242,7 +177,7 @@ class KubernetesService {
       return `${podName}-${userHash}-${port}-ingress`;
     }
 
-    // 🔧 SANITIZAR: Asegurar nombres válidos para Kubernetes
+    // Sanitizar nombre y generar nombres del ingress y service
     const sanitizedPodName = podName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
     const ingressName = `${sanitizedPodName}-${userHash}-${port}-ingress`;
     const serviceName = `${sanitizedPodName}-${userHash}-${port}-service`;
@@ -297,13 +232,8 @@ class KubernetesService {
     };
     
     try {
-      // Intentar crear con sintaxis de objeto primero
-      try {
-        await this.k8sNetworkingApi.createNamespacedIngress({ namespace: 'default', body: ingress });
-      } catch (objCreateError) {
-        console.log('🔍 DEBUG - Sintaxis de objeto para crear ingress falló, probando sintaxis posicional:', objCreateError.message);
-        await this.k8sNetworkingApi.createNamespacedIngress('default', ingress);
-      }
+      // Crear Ingress
+      await this.k8sNetworkingApi.createNamespacedIngress({ namespace: 'default', body: ingress });
       console.log(`✅ Ingress ${ingressName} created for ${subdomain}`);
       return ingressName;
     } catch (error) {
@@ -381,10 +311,10 @@ class KubernetesService {
       return;
     }
 
-    // 🔧 SANITIZAR: Asegurar nombres válidos para Kubernetes
+    // Sanitizar nombre y generar nombre completo del pod
     const sanitizedPodName = podName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
     const podFullName = `${sanitizedPodName}-${userHash}`;
-    console.log('🔍 DEBUG createMainPod - podFullName:', podFullName);
+    console.log('✅ Generated pod name:', podFullName);
     
     // Configurar límites de recursos
     const resourceLimits = {
@@ -502,13 +432,8 @@ class KubernetesService {
     };
     
     try {
-      // Intentar crear con sintaxis de objeto primero
-      try {
-        await this.k8sApi.createNamespacedPod({ namespace: 'default', body: pod });
-      } catch (objCreateError) {
-        console.log('🔍 DEBUG - Sintaxis de objeto para crear pod falló, probando sintaxis posicional:', objCreateError.message);
-        await this.k8sApi.createNamespacedPod('default', pod);
-      }
+      // Crear Pod
+      await this.k8sApi.createNamespacedPod({ namespace: 'default', body: pod });
       console.log(`✅ Pod ${podFullName} created successfully`);
     } catch (error) {
       if (error.statusCode === 409 || error.status === 409 || error.code === 409) {
@@ -526,7 +451,7 @@ class KubernetesService {
       return;
     }
 
-    // 🔧 SANITIZAR: Usar nombres válidos para Kubernetes
+    // Sanitizar nombre y generar nombre completo del pod
     const sanitizedPodName = podName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
     const podFullName = `${sanitizedPodName}-${userHash}`;
     console.log(`🗑️  Deleting resources for pod ${podFullName}`);
@@ -599,21 +524,14 @@ class KubernetesService {
       };
     }
 
-    // 🔧 SANITIZAR: Usar nombres válidos para Kubernetes
+    // Sanitizar nombre y generar nombre completo del pod
     const sanitizedPodName = podName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
     const podFullName = `${sanitizedPodName}-${userHash}`;
     
     try {
-      // Intentar leer con sintaxis de objeto primero
-      let pod;
-      try {
-        const response = await this.k8sApi.readNamespacedPod({ name: podFullName, namespace: 'default' });
-        pod = response.body;
-      } catch (objReadError) {
-        console.log('🔍 DEBUG - Sintaxis de objeto para leer pod falló, probando sintaxis posicional:', objReadError.message);
-        const response = await this.k8sApi.readNamespacedPod(podFullName, 'default');
-        pod = response.body;
-      }
+      // Leer información del pod
+      const response = await this.k8sApi.readNamespacedPod({ name: podFullName, namespace: 'default' });
+      const pod = response.body;
       
       let status;
       switch (pod.status.phase) {
@@ -705,37 +623,20 @@ class KubernetesService {
 [${timeStr}] Sistema funcionando correctamente`;
     }
 
-    // 🔧 SANITIZAR: Usar nombres válidos para Kubernetes
+    // Sanitizar nombre y generar nombre completo del pod
     const sanitizedPodName = podName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
     const podFullName = `${sanitizedPodName}-${userHash}`;
     
     try {
-      // Intentar leer logs con sintaxis de objeto primero
-      let logs;
-      try {
-        const response = await this.k8sApi.readNamespacedPodLog({
-          name: podFullName,
-          namespace: 'default',
-          container: 'main',
-          follow: false,
-          tailLines: lines
-        });
-        logs = response.body;
-      } catch (objReadError) {
-        console.log('🔍 DEBUG - Sintaxis de objeto para leer logs falló, probando sintaxis posicional:', objReadError.message);
-        const response = await this.k8sApi.readNamespacedPodLog(
-          podFullName,
-          'default',
-          'main',
-          undefined,
-          false,
-          undefined,
-          undefined,
-          undefined,
-          lines
-        );
-        logs = response.body;
-      }
+      // Leer logs del pod
+      const response = await this.k8sApi.readNamespacedPodLog({
+        name: podFullName,
+        namespace: 'default',
+        container: 'main',
+        follow: false,
+        tailLines: lines
+      });
+      const logs = response.body;
       
       return logs || 'No hay logs disponibles aún.';
     } catch (error) {

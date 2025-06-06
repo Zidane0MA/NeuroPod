@@ -160,13 +160,8 @@ class KubernetesService {
           'nginx.ingress.kubernetes.io/proxy-read-timeout': '3600',
           'nginx.ingress.kubernetes.io/proxy-send-timeout': '3600',
           'nginx.ingress.kubernetes.io/proxy-http-version': '1.1',
-          'nginx.ingress.kubernetes.io/configuration-snippet': `
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-          `,
+          'nginx.ingress.kubernetes.io/ssl-redirect': 'true',
+          'nginx.ingress.kubernetes.io/force-ssl-redirect': 'true',
           'nginx.ingress.kubernetes.io/keep-alive': '75',
           'nginx.ingress.kubernetes.io/keep-alive-requests': '100',
           'nginx.ingress.kubernetes.io/proxy-buffer-size': '16k',
@@ -174,6 +169,10 @@ class KubernetesService {
         }
       },
       spec: {
+        tls: [{
+          hosts: [subdomain],
+          secretName: 'neuropod-tls'
+        }],
         rules: [{
           host: subdomain,
           http: {

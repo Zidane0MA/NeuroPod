@@ -94,11 +94,18 @@ class PodMonitorService {
       }
       
       // Obtener estado actual desde Kubernetes
-      const kubernetesData = await kubernetesService.getPodStatus(podName, userHash);
+      let kubernetesData;
+      try {
+        kubernetesData = await kubernetesService.getPodStatus(podName, userHash);
+      } catch (k8sError) {
+        console.warn(`⚠️  Error obteniendo estado de K8s para pod ${podName}:`, k8sError.message);
+        // Si hay error de conexión, mantener estado actual y continuar
+        return;
+      }
       
-      // Validar que kubernetesData no sea undefined
-      if (!kubernetesData) {
-        console.warn(`⚠️  No se pudo obtener estado de K8s para pod ${podName}`);
+      // Validar que kubernetesData no sea undefined o null
+      if (!kubernetesData || typeof kubernetesData !== 'object') {
+        console.warn(`⚠️  Datos inválidos de K8s para pod ${podName}:`, kubernetesData);
         return;
       }
       
@@ -133,7 +140,7 @@ class PodMonitorService {
       }
       
       // Actualizar métricas si están disponibles
-      if (kubernetesData.metrics) {
+      if (kubernetesData.metrics && typeof kubernetesData.metrics === 'object') {
         const oldStats = { ...pod.stats };
         pod.updateStats(kubernetesData.metrics);
         
@@ -147,6 +154,19 @@ class PodMonitorService {
       if (kubernetesData.status === 'running') {
         pod.lastActive = new Date();
         hasChanges = true;
+      }
+      
+      // Actualizar URLs placeholder a URLs reales si es necesario (solo como respaldo)
+      if (kubernetesData.status === 'running') {
+        // Solo intentar actualizar si hay URLs placeholder
+        const hasPlaceholderUrls = pod.httpServices.some(service => service.url.includes('placeholder'));
+        if (hasPlaceholderUrls) {
+          console.log(`🔧 Detectadas URLs placeholder en pod ${pod.podName}, intentando actualizar...`);
+          const urlsUpdated = await this.updatePlaceholderUrls(pod);
+          if (urlsUpdated) {
+            hasChanges = true;
+          }
+        }
       }
       
       // Capturar token de Jupyter si es necesario
@@ -164,6 +184,67 @@ class PodMonitorService {
       
     } catch (error) {
       await this.handlePodError(pod, error);
+    }
+  }
+
+  // Actualizar URLs placeholder con URLs reales (respaldo)
+  async updatePlaceholderUrls(pod) {
+    try {
+      let hasUpdates = false;
+      
+      // Solo actualizar si hay URLs placeholder y tenemos la información necesaria
+      if (!pod.userHash) {
+        console.warn(`⚠️  Pod ${pod.podName} no tiene userHash, saltando actualización de URLs`);
+        return false;
+      }
+      
+      // Actualizar URLs de servicios HTTP que aún sean placeholder
+      for (const service of pod.httpServices) {
+        if (service.url.includes('placeholder')) {
+          // Generar nombres de Kubernetes basados en el patrón conocido
+          const sanitizedPodName = pod.podName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+          
+          // Intentar obtener el subdominio real desde el ingress de Kubernetes
+          try {
+            const realUrl = await this.getRealUrlFromKubernetes(sanitizedPodName, pod.userHash, service.port);
+            if (realUrl) {
+              service.url = realUrl;
+              hasUpdates = true;
+              console.log(`🔗 URL de respaldo actualizada para ${pod.podName} puerto ${service.port}: ${realUrl}`);
+            }
+          } catch (urlError) {
+            console.warn(`⚠️  No se pudo obtener URL real para ${pod.podName}:${service.port}:`, urlError.message);
+          }
+        }
+        
+        // Actualizar nombres de Kubernetes si están vacíos
+        if (!service.kubernetesServiceName || !service.kubernetesIngressName) {
+          const sanitizedPodName = pod.podName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+          service.kubernetesServiceName = `${sanitizedPodName}-${pod.userHash}-${service.port}-service`;
+          service.kubernetesIngressName = `${sanitizedPodName}-${pod.userHash}-${service.port}-ingress`;
+          hasUpdates = true;
+          
+          console.log(`🏷️ Nombres K8s de respaldo actualizados para ${pod.podName} puerto ${service.port}`);
+        }
+      }
+      
+      return hasUpdates;
+    } catch (error) {
+      console.error(`❌ Error actualizando URLs placeholder para pod ${pod.podName}:`, error);
+      return false;
+    }
+  }
+  
+  // Obtener URL real desde Kubernetes
+  async getRealUrlFromKubernetes(sanitizedPodName, userHash, port) {
+    try {
+      const ingressName = `${sanitizedPodName}-${userHash}-${port}-ingress`;
+      // Aquí podríamos consultar Kubernetes para obtener la URL real
+      // Por ahora, retornamos null para indicar que no se puede obtener
+      return null;
+    } catch (error) {
+      console.warn(`⚠️  Error obteniendo URL de Kubernetes:`, error.message);
+      return null;
     }
   }
 

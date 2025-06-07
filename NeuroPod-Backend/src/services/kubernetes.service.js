@@ -195,19 +195,17 @@ class KubernetesService {
           'neuropod.online/resource': 'ingress'
         },
         annotations: {
-          'kubernetes.io/ingress.class': process.env.INGRESS_CLASS || 'nginx',
+          'nginx.ingress.kubernetes.io/backend-protocol': 'HTTP',
           'nginx.ingress.kubernetes.io/proxy-read-timeout': '3600',
           'nginx.ingress.kubernetes.io/proxy-send-timeout': '3600',
           'nginx.ingress.kubernetes.io/proxy-http-version': '1.1',
-          'nginx.ingress.kubernetes.io/ssl-redirect': 'true',
-          'nginx.ingress.kubernetes.io/force-ssl-redirect': 'true',
           'nginx.ingress.kubernetes.io/keep-alive': '75',
           'nginx.ingress.kubernetes.io/keep-alive-requests': '100',
-          'nginx.ingress.kubernetes.io/proxy-buffer-size': '16k',
-          'nginx.ingress.kubernetes.io/server-name-hash-bucket-size': '256'
+          'nginx.ingress.kubernetes.io/upstream-hash-by': '$remote_addr'
         }
       },
       spec: {
+        ingressClassName: process.env.INGRESS_CLASS || 'neuropod-nginx',
         tls: [{
           hosts: [subdomain],
           secretName: 'neuropod-tls'
@@ -414,6 +412,17 @@ class KubernetesService {
             runAsUser: 0, // Root para instalaciones
             capabilities: {
               add: ['SYS_ADMIN'] // Para algunos contenedores que lo requieren
+            },
+            // Mejorar terminación del proceso
+            allowPrivilegeEscalation: false,
+            readOnlyRootFilesystem: false
+          },
+          // Configurar lifecycle para mejor terminación
+          lifecycle: {
+            preStop: {
+              exec: {
+                command: ['/bin/sh', '-c', 'pkill -TERM -f jupyter || true; sleep 2']
+              }
             }
           },
           workingDir: '/workspace'
@@ -427,8 +436,17 @@ class KubernetesService {
         restartPolicy: 'Never',
         ...(tolerations.length > 0 ? { tolerations } : {}),
         // Configuraciones adicionales para estabilidad
-        terminationGracePeriodSeconds: 30,
-        dnsPolicy: 'ClusterFirst'
+        terminationGracePeriodSeconds: 10,  // Reducido de 30 a 10 segundos
+        dnsPolicy: 'ClusterFirst',
+        // Configuraciones para mejorar terminación
+        activeDeadlineSeconds: 3600,  // 1 hora máximo de ejecución
+        hostNetwork: false,
+        hostPID: false,
+        // Configuración adicional para mejor cleanup
+        securityContext: {
+          runAsNonRoot: false,
+          fsGroup: 0
+        }
       }
     };
     
@@ -458,10 +476,29 @@ class KubernetesService {
     console.log(`🗑️  Deleting resources for pod ${podFullName}`);
 
     try {
-      // Eliminar pod
+      // Eliminar pod con grace period corto
       try {
-        await this.k8sApi.deleteNamespacedPod({ name: podFullName, namespace: 'default' });
+        await this.k8sApi.deleteNamespacedPod({ 
+          name: podFullName, 
+          namespace: 'default',
+          gracePeriodSeconds: 5  // Esperar solo 5 segundos en lugar de 30
+        });
         console.log(`✅ Pod ${podFullName} deleted`);
+        
+        // Esperar un momento y verificar si se eliminó correctamente
+        setTimeout(async () => {
+          try {
+            await this.k8sApi.readNamespacedPod({ name: podFullName, namespace: 'default' });
+            // Si llegamos aquí, el pod aún existe - forzar eliminación
+            console.log(`⚠️  Pod ${podFullName} still terminating, forcing deletion...`);
+            await this.forceDeletePod(podFullName);
+          } catch (readError) {
+            if (readError.statusCode === 404) {
+              console.log(`✅ Pod ${podFullName} successfully terminated`);
+            }
+          }
+        }, 15000); // Verificar después de 15 segundos
+        
       } catch (err) {
         if (err.statusCode !== 404) {
           console.warn(`⚠️  Warning deleting pod: ${err.message}`);
@@ -700,7 +737,10 @@ class KubernetesService {
 
     try {
       // Verificar conectividad básica
-      await this.k8sApi.listNamespacedPod('default', undefined, undefined, undefined, undefined, 1);
+      await this.k8sApi.listNamespacedPod({ 
+        namespace: 'default', 
+        limit: 1 
+      });
       
       return {
         status: 'healthy',
@@ -724,14 +764,10 @@ class KubernetesService {
     }
 
     try {
-      const { body } = await this.k8sApi.listNamespacedPod(
-        'default',
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        'neuropod.online/resource=pod'
-      );
+      const { body } = await this.k8sApi.listNamespacedPod({
+        namespace: 'default',
+        labelSelector: 'neuropod.online/resource=pod'
+      });
       
       return body.items.map(pod => ({
         name: pod.metadata.name,
@@ -742,6 +778,41 @@ class KubernetesService {
     } catch (error) {
       console.error('Error listing NeuroPod pods:', error);
       return [];
+    }
+  }
+
+  // Forzar eliminación de un pod problemático
+  async forceDeletePod(podFullName) {
+    if (!this.isKubernetesAvailable()) {
+      console.log(`🔧 [SIMULATION] Force deleting pod ${podFullName}`);
+      return;
+    }
+
+    try {
+      // Eliminar con grace period 0 para forzar eliminación inmediata
+      await this.k8sApi.deleteNamespacedPod({ 
+        name: podFullName, 
+        namespace: 'default',
+        gracePeriodSeconds: 0  // Eliminación inmediata
+      });
+      console.log(`✅ Pod ${podFullName} force deleted`);
+      
+      // Verificar nuevamente después de un momento
+      setTimeout(async () => {
+        try {
+          await this.k8sApi.readNamespacedPod({ name: podFullName, namespace: 'default' });
+          console.log(`❌ Pod ${podFullName} still exists after force delete - may need manual cleanup`);
+          console.log(`🛠️  Manual cleanup command: kubectl delete pod ${podFullName} --force --grace-period=0`);
+        } catch (readError) {
+          if (readError.statusCode === 404) {
+            console.log(`✅ Pod ${podFullName} successfully force deleted`);
+          }
+        }
+      }, 5000);
+      
+    } catch (error) {
+      console.error(`❌ Error force deleting pod ${podFullName}:`, error.message);
+      console.log(`🛠️  Try manual cleanup: kubectl delete pod ${podFullName} --force --grace-period=0`);
     }
   }
 
@@ -759,7 +830,10 @@ class KubernetesService {
       const labelSelector = 'neuropod.online/resource';
       
       // Limpiar services huérfanos
-      const { body: services } = await this.k8sApi.listNamespacedService('default', undefined, undefined, undefined, undefined, labelSelector);
+      const { body: services } = await this.k8sApi.listNamespacedService({
+        namespace: 'default',
+        labelSelector: labelSelector
+      });
       
       for (const service of services.items) {
         // Verificar si el pod correspondiente existe
@@ -776,7 +850,10 @@ class KubernetesService {
       }
       
       // Limpiar ingress huérfanos
-      const { body: ingresses } = await this.k8sNetworkingApi.listNamespacedIngress('default', undefined, undefined, undefined, undefined, labelSelector);
+      const { body: ingresses } = await this.k8sNetworkingApi.listNamespacedIngress({
+        namespace: 'default',
+        labelSelector: labelSelector
+      });
       
       for (const ingress of ingresses.items) {
         const podName = ingress.metadata.labels.app + '-' + ingress.metadata.labels.user;

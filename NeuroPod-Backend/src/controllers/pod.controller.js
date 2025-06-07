@@ -383,17 +383,26 @@ async function getPodLogsContent(pod) {
 }
 
 async function stopPodResources(pod, deletePVC = false) {
-  const services = pod.httpServices.map(service => ({
-    serviceName: service.kubernetesServiceName,
-    ingressName: service.kubernetesIngressName
-  }));
+  // Generar nombres de servicios usando la misma lógica que en kubernetes.service.js
+  const { generateUserHash } = require('../utils/podHelpers');
+  const userHash = generateUserHash(pod.userId.toString());
+  const sanitizedPodName = pod.podName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  
+  const services = pod.httpServices.map(service => {
+    const serviceName = `${sanitizedPodName}-${userHash}-${service.port}-service`;
+    const ingressName = `${sanitizedPodName}-${userHash}-${service.port}-ingress`;
+    return {
+      serviceName,
+      ingressName
+    };
+  });
   
   try {
     await kubernetesService.deletePodResources(
       pod.podName, 
-      pod.userHash, 
+      userHash, 
       services,
-      deletePVC ? pod.kubernetesResources.pvcName : null
+      deletePVC ? `pvc-${sanitizedPodName}-${userHash}` : null
     );
   } catch (err) {
     console.warn('Warning al eliminar recursos K8s:', err.message);
@@ -407,7 +416,7 @@ async function stopPodResources(pod, deletePVC = false) {
 function createKubernetesResourcesAsync(pod, podOwner, body) {
   setImmediate(async () => {
     try {
-      await kubernetesService.createPodWithServices({
+      const kubernetesResult = await kubernetesService.createPodWithServices({
         name: pod.podName,
         userId: podOwner._id.toString(),
         dockerImage: pod.dockerImage,
@@ -418,8 +427,29 @@ function createKubernetesResourcesAsync(pod, podOwner, body) {
         enableJupyter: body.enableJupyter
       });
       
+      // Actualizar el pod con la información real de Kubernetes
+      if (kubernetesResult && kubernetesResult.services) {
+        // Actualizar cada servicio HTTP con la información real
+        kubernetesResult.services.forEach(k8sService => {
+          const httpService = pod.httpServices.find(service => service.port === k8sService.port);
+          if (httpService) {
+            httpService.url = k8sService.url;
+            httpService.kubernetesServiceName = k8sService.serviceName;
+            httpService.kubernetesIngressName = k8sService.ingressName;
+            console.log(`🔗 URL actualizada en creación: ${httpService.serviceName} -> ${k8sService.url}`);
+          }
+        });
+        
+        // Actualizar información de Kubernetes en el pod
+        pod.kubernetesResources.podName = kubernetesResult.podName;
+        pod.kubernetesResources.pvcName = kubernetesResult.pvcName;
+        pod.userHash = kubernetesResult.userHash;
+      }
+      
       pod.status = 'creating';
       await pod.save();
+      
+      console.log(`✅ Pod ${pod.podName} creado exitosamente con URLs reales`);
       
       // Capturar token de Jupyter si es necesario
       if (body.enableJupyter) {
@@ -437,7 +467,7 @@ function createKubernetesResourcesAsync(pod, podOwner, body) {
 function recreateKubernetesResourcesAsync(pod) {
   setImmediate(async () => {
     try {
-      await kubernetesService.createPodWithServices({
+      const kubernetesResult = await kubernetesService.createPodWithServices({
         name: pod.podName,
         userId: pod.userId.toString(),
         dockerImage: pod.dockerImage,
@@ -447,6 +477,24 @@ function recreateKubernetesResourcesAsync(pod) {
         gpu: pod.gpu,
         enableJupyter: pod.enableJupyter
       });
+      
+      // Actualizar URLs si hay información de servicios
+      if (kubernetesResult && kubernetesResult.services) {
+        kubernetesResult.services.forEach(k8sService => {
+          const httpService = pod.httpServices.find(service => service.port === k8sService.port);
+          if (httpService) {
+            httpService.url = k8sService.url;
+            httpService.kubernetesServiceName = k8sService.serviceName;
+            httpService.kubernetesIngressName = k8sService.ingressName;
+            console.log(`🔗 URL actualizada en reinicio: ${httpService.serviceName} -> ${k8sService.url}`);
+          }
+        });
+        
+        // Actualizar userHash si es necesario
+        if (kubernetesResult.userHash && !pod.userHash) {
+          pod.userHash = kubernetesResult.userHash;
+        }
+      }
       
       await updatePodStatus(pod, 'creating');
       

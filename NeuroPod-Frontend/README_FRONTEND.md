@@ -256,10 +256,22 @@ POST   /api/auth/users/fix-balances # Corregir balances de administradores (admi
 ```
 
 ### **2. WebSockets** (estado actual)
-```typescript
-// Eventos preparados para integración
-'podUpdate'     # Recibe actualizaciones de estado y métricas del pod (unificado)
-```
+| Evento                | ¿Se usa en el frontend? | Dónde / Cómo se usa                                                                                   |
+|-----------------------|:----------------------:|-------------------------------------------------------------------------------------------------------|
+| `connection`          |   ✅                   | Se maneja al conectar el socket (no hay listener explícito, pero la conexión se establece y usa info).|
+| `disconnect`          |   ✅                   | Se maneja para mostrar estados de conexión y reconexión en hooks y servicios.                         |
+| `subscribe`           |   ✅                   | Usado en `websocket.service.ts` para suscribirse a pods.                                              |
+| `unsubscribe`         |   ✅                   | Usado en `websocket.service.ts` para desuscribirse de pods.                                           |
+| `requestLogs`         |   ✅                   | Usado en `websocket.service.ts` y dialogs de logs para solicitar logs de un pod.                      |
+| `podUpdate`           |   ✅                   | Usado en `websocket.service.ts`, hooks y componentes para recibir actualizaciones de pods.            |
+| `podLogs`             |   ✅                   | Usado en `websocket.service.ts`, hooks y dialogs para mostrar logs en tiempo real.                    |
+| `podCreated`          |   ✅                   | Usado en `websocket.service.ts` y en `useGlobalNotifications` para notificar creación de pods.        |
+| `podDeleted`          |   ✅                   | Usado en `websocket.service.ts` y en `useGlobalNotifications` para notificar eliminación de pods.     |
+| `adminNotification`   |   ✅                   | Usado en `websocket.service.ts` y en `useGlobalNotifications` para admins.                            |
+| `lowBalanceAlert`     |   ✅                   | Usado en `websocket.service.ts` y en `useGlobalNotifications` para alertas de saldo bajo.             |
+| `ping` / `pong`       |   ✅                   | Usado en `websocket.service.ts` para mantener la conexión viva.                                       |
+
+Todos los eventos principales del backend están implementados y gestionados en el frontend, tanto para usuarios como para admins.
 
 ### **3. Modo de Simulación** 🎭
 ```typescript

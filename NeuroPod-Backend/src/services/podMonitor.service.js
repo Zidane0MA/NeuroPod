@@ -132,29 +132,55 @@ class PodMonitorService {
           hasChanges = true;
           
           console.log(`📊 Pod ${podName} cambió de estado: ${previousStatus} → ${kubernetesData.status}`);
+          
+          // 🔧 NUEVO: Actualizar estado de servicios HTTP cuando cambia el estado del pod
+          console.log(`🔄 Actualizando servicios de pod ${podName} a estado: ${kubernetesData.status}`);
+          pod.httpServices.forEach((service, index) => {
+            const newServiceStatus = this.getServiceStatus(kubernetesData.status);
+            const oldServiceStatus = service.status;
+            if (service.status !== newServiceStatus) {
+              service.status = newServiceStatus;
+              console.log(`  🔄 Servicio ${service.serviceName} (puerto ${service.port}): ${oldServiceStatus} → ${newServiceStatus}`);
+            }
+          });
+          
+          // Actualizar estado de servicios TCP
+          pod.tcpServices.forEach((service, index) => {
+            if (service.status !== 'disable') {
+              const newServiceStatus = this.getServiceStatus(kubernetesData.status);
+              const oldServiceStatus = service.status;
+              if (service.status !== newServiceStatus) {
+                service.status = newServiceStatus;
+                console.log(`  🔄 Servicio TCP ${service.serviceName} (puerto ${service.port}): ${oldServiceStatus} → ${newServiceStatus}`);
+              }
+            }
+          });
         }
       } else if (kubernetesData.status && kubernetesData.status === pod.status) {
         // El estado es el mismo, pero resetear el timestamp si es apropiado
         if (wasRecentlyStopped && kubernetesData.status === 'running') {
           console.log(`⏰ Pod ${podName} confirmed running after recent stop attempt`);
           hasChanges = true; // Para actualizar timestamp
-        }
-        
-        // Actualizar estado de servicios HTTP solo si el estado del pod cambió
-        if (hasChanges && kubernetesData.status) {
-          pod.httpServices.forEach(service => {
-            const newStatus = this.getServiceStatus(kubernetesData.status);
-            if (service.status !== newStatus) {
-              service.status = newStatus;
+          
+          // 🔧 NUEVO: También actualizar servicios en este caso
+          console.log(`🔄 Actualizando servicios de pod ${podName} después de confirmación`);
+          pod.httpServices.forEach((service, index) => {
+            const newServiceStatus = this.getServiceStatus(kubernetesData.status);
+            const oldServiceStatus = service.status;
+            if (service.status !== newServiceStatus) {
+              service.status = newServiceStatus;
+              console.log(`  🔄 Servicio ${service.serviceName} (puerto ${service.port}): ${oldServiceStatus} → ${newServiceStatus}`);
             }
           });
           
           // Actualizar estado de servicios TCP
-          pod.tcpServices.forEach(service => {
+          pod.tcpServices.forEach((service, index) => {
             if (service.status !== 'disable') {
-              const newStatus = this.getServiceStatus(kubernetesData.status);
-              if (service.status !== newStatus) {
-                service.status = newStatus;
+              const newServiceStatus = this.getServiceStatus(kubernetesData.status);
+              const oldServiceStatus = service.status;
+              if (service.status !== newServiceStatus) {
+                service.status = newServiceStatus;
+                console.log(`  🔄 Servicio TCP ${service.serviceName} (puerto ${service.port}): ${oldServiceStatus} → ${newServiceStatus}`);
               }
             }
           });
@@ -356,7 +382,10 @@ class PodMonitorService {
 
   // Notificar actualización de pod por WebSocket
   notifyPodUpdate(pod) {
-    if (!this.io) return;
+    if (!this.io) {
+      console.warn('⚠️  No hay instancia de Socket.IO disponible para notificar actualización');
+      return;
+    }
     
     try {
       const podUpdate = {
@@ -373,8 +402,17 @@ class PodMonitorService {
         timestamp: new Date().toISOString()
       };
       
+      console.log(`📡 Enviando actualización WebSocket para pod ${pod.podId}:`, {
+        podId: pod.podId,
+        status: pod.status,
+        type: podUpdate.type,
+        httpServices: podUpdate.httpServices.map(s => ({ port: s.port, status: s.status }))
+      });
+      
       // Enviar actualización usando la función del socket
       this.io.sendPodUpdate(pod.podId, podUpdate);
+      
+      console.log(`✅ Actualización WebSocket enviada para pod ${pod.podId}`);
       
     } catch (error) {
       console.error(`❌ Error enviando notificación WebSocket para pod ${pod.podId}:`, error);

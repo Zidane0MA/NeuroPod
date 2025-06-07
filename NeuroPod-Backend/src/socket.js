@@ -291,17 +291,44 @@ const setupSocket = (server) => {
   const sendPodUpdate = async (podId, updateData) => {
     try {
       const roomName = `pod:${podId}`;
+      console.log(`📡 Intentando enviar actualización a sala: ${roomName}`);
+      
       const clientsInRoom = await io.in(roomName).fetchSockets();
+      console.log(`📡 Clientes encontrados en sala ${roomName}: ${clientsInRoom.length}`);
       
       if (clientsInRoom.length > 0) {
-        console.log(`📡 Sending pod update to ${clientsInRoom.length} clients for pod ${podId}`);
-        
-        io.to(roomName).emit('podUpdate', {
+        const eventData = {
           type: 'podUpdate',
           podId,
           ...updateData,
           timestamp: new Date().toISOString()
+        };
+        
+        console.log(`📡 Enviando evento podUpdate:`, {
+          podId,
+          status: updateData.status,
+          clientCount: clientsInRoom.length
         });
+        
+        io.to(roomName).emit('podUpdate', eventData);
+        
+        console.log(`✅ Evento podUpdate enviado a ${clientsInRoom.length} clientes`);
+      } else {
+        console.log(`⚠️  No hay clientes suscritos a la sala ${roomName}`);
+        
+        // También enviar a todos los usuarios conectados como fallback
+        const allSockets = await io.fetchSockets();
+        console.log(`📡 Enviando a todos los usuarios conectados como fallback: ${allSockets.length}`);
+        
+        if (allSockets.length > 0) {
+          io.emit('podUpdate', {
+            type: 'podUpdate',
+            podId,
+            ...updateData,
+            timestamp: new Date().toISOString()
+          });
+          console.log(`✅ Evento enviado como broadcast a ${allSockets.length} clientes`);
+        }
       }
       
     } catch (error) {

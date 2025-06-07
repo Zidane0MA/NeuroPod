@@ -1,4 +1,4 @@
-import api from './api';
+import api, { apiPods } from './api';
 import { Pod, PodCreateParams, PodCreateResponse, PodConnectionsResponse, SimulatedPod } from '@/types/pod';
 import { getSimulatedPods, toggleSimulatedPodStatus, deleteSimulatedPod } from '@/utils/podUtils';
 
@@ -163,7 +163,8 @@ export const podService = {
     try {
       console.log('Enviando solicitud de creación de pod:', params);
       
-      const response = await api.post<PodCreateResponse>('/api/pods', params);
+      // 🔧 USAR apiPods para timeout extendido (30s)
+      const response = await apiPods.post<PodCreateResponse>('/api/pods', params);
       
       console.log('Respuesta de creación de pod:', response.data);
       
@@ -194,7 +195,8 @@ export const podService = {
   // Iniciar un pod
   startPod: async (podId: string): Promise<Pod> => {
     try {
-      const response = await api.post<{ success: boolean, data: { podId: string, status: string } }>(`/api/pods/${podId}/start`);
+      // 🔧 USAR apiPods para timeout extendido (30s)
+      const response = await apiPods.post<{ success: boolean, data: { podId: string, status: string } }>(`/api/pods/${podId}/start`);
       
       // Obtener el pod actualizado
       const pods = await podService.getPods();
@@ -226,7 +228,8 @@ export const podService = {
   // Detener un pod
   stopPod: async (podId: string): Promise<Pod> => {
     try {
-      const response = await api.post<{ success: boolean, data: { podId: string, status: string } }>(`/api/pods/${podId}/stop`);
+      // 🔧 USAR apiPods para timeout extendido (30s)
+      const response = await apiPods.post<{ success: boolean, data: { podId: string, status: string } }>(`/api/pods/${podId}/stop`);
       
       // Obtener el pod actualizado
       const pods = await podService.getPods();
@@ -258,7 +261,8 @@ export const podService = {
   // Eliminar un pod
   deletePod: async (podId: string): Promise<void> => {
     try {
-      await api.delete(`/api/pods/${podId}`);
+      // 🔧 USAR apiPods para timeout extendido (30s)
+      await apiPods.delete(`/api/pods/${podId}`);
     } catch (error: any) {
       console.error('Error al eliminar pod:', error);
       

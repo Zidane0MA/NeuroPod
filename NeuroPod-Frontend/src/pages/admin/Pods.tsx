@@ -11,6 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Search, X, Loader2 } from "lucide-react";
+// 🔧 NUEVO: Importar hooks de WebSocket
+import { useWebSocket } from "@/hooks/useWebSocket";
+import webSocketService from "@/services/websocket.service";
 
 const AdminPods = () => {
   const { user } = useAuth();
@@ -26,6 +29,69 @@ const AdminPods = () => {
   const [searching, setSearching] = useState<boolean>(false);
   const [isSearchMode, setIsSearchMode] = useState<boolean>(false);
 
+  // 🔧 NUEVO: Inicializar WebSocket
+  const { service: wsService } = useWebSocket();
+
+  // 🔧 NUEVO: Suscribirse a actualizaciones de pods via WebSocket
+  useEffect(() => {
+    console.log('🔌 Admin: Inicializando suscripciones WebSocket...');
+    
+    // Verificar estado de conexión
+    const wsStatus = webSocketService.getConnectionStatus();
+    console.log('🔌 Admin: Estado WebSocket:', wsStatus);
+    
+    // Suscribirse a actualizaciones generales de pods
+    const unsubscribePodUpdate = webSocketService.onPodUpdate('*', (data) => {
+      console.log('📊 Admin: Pod update recibido:', data);
+      console.log('📊 Admin: Pods actuales:', pods.map(p => ({ id: p.podId, status: p.status })));
+      
+      // Actualizar el pod específico en la lista
+      setPods(prevPods => {
+        const updated = prevPods.map(pod => 
+          pod.podId === data.podId 
+            ? { 
+                ...pod, 
+                status: data.status,
+                stats: data.stats || pod.stats,
+                httpServices: data.httpServices || pod.httpServices,
+                tcpServices: data.tcpServices || pod.tcpServices
+              }
+            : pod
+        );
+        console.log('📊 Admin: Pods después de actualización:', updated.map(p => ({ id: p.podId, status: p.status })));
+        return updated;
+      });
+    });
+
+    // Suscribirse a notificaciones de pods creados
+    const unsubscribePodCreated = webSocketService.onPodCreated((data) => {
+      console.log('🎆 Admin: Pod creado:', data);
+      // Solo añadir si no estamos en modo de búsqueda o si pertenece al usuario buscado
+      if (!isSearchMode || (data.userEmail && data.userEmail === searchEmail)) {
+        console.log('🎆 Admin: Recargando pods después de creación...');
+        fetchMyPods(); // Recargar lista completa
+      }
+    });
+
+    // Suscribirse a notificaciones de pods eliminados
+    const unsubscribePodDeleted = webSocketService.onPodDeleted((data) => {
+      console.log('🗑️ Admin: Pod eliminado:', data);
+      setPods(prevPods => {
+        const filtered = prevPods.filter(pod => pod.podId !== data.podId);
+        console.log('🗑️ Admin: Pods después de eliminación:', filtered.map(p => ({ id: p.podId, status: p.status })));
+        return filtered;
+      });
+    });
+
+    // Cleanup
+    return () => {
+      console.log('🔌 Admin: Limpiando suscripciones WebSocket...');
+      unsubscribePodUpdate();
+      unsubscribePodCreated();
+      unsubscribePodDeleted();
+    };
+  }, [isSearchMode, searchEmail]); // Dependencias para re-suscribirse cuando cambie el modo
+
   // Cargar pods propios del admin al iniciar
   useEffect(() => {
     if (!isSearchMode) {
@@ -39,6 +105,14 @@ const AdminPods = () => {
       setError(null);
       const fetchedPods = await podService.getPods();
       setPods(fetchedPods);
+      
+      // 🔧 NUEVO: Suscribirse a cada pod específico
+      console.log('📡 Admin: Suscribiendo a pods específicos:', fetchedPods.map(p => p.podId));
+      fetchedPods.forEach(pod => {
+        console.log(`📡 Admin: Suscribiendo a pod ${pod.podId}`);
+        webSocketService.subscribeToPod(pod.podId, user?.id);
+      });
+      
     } catch (err: unknown) {
       console.error('Error al cargar pods:', err);
       setError('No se pudieron cargar los pods. Por favor, intenta de nuevo.');
@@ -62,6 +136,13 @@ const AdminPods = () => {
       const userPods = await podService.getPodsByUser(searchEmail.trim());
       setPods(userPods);
       setIsSearchMode(true);
+      
+      // 🔧 NUEVO: Suscribirse a pods del usuario buscado
+      console.log('📡 Admin: Suscribiendo a pods del usuario buscado:', userPods.map(p => p.podId));
+      userPods.forEach(pod => {
+        console.log(`📡 Admin: Suscribiendo a pod ${pod.podId} del usuario ${searchEmail}`);
+        webSocketService.subscribeToPod(pod.podId, user?.id);
+      });
       
       if (userPods.length === 0) {
         toast.info(`No se encontraron pods para ${searchEmail}`);

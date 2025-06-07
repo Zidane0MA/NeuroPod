@@ -7,6 +7,9 @@ import { toggleSimulatedPodStatus, deleteSimulatedPod } from "@/utils/podUtils";
 import { ClientPodsHeader } from "@/components/client/pods/ClientPodsHeader";
 import { PodsContainer } from "@/components/client/pods/PodsContainer";
 import { podService } from "@/services/pod.service";
+// 🔧 NUEVO: Importar hooks de WebSocket
+import { useWebSocket } from "@/hooks/useWebSocket";
+import webSocketService from "@/services/websocket.service";
 
 const ClientPods = () => {
   const { user } = useAuth();
@@ -17,23 +20,70 @@ const ClientPods = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 🔧 NUEVO: Inicializar WebSocket
+  const { service: wsService } = useWebSocket();
+
+  // 🔧 NUEVO: Suscribirse a actualizaciones de pods via WebSocket
+  useEffect(() => {
+    // Suscribirse a actualizaciones de pods (solo los del usuario actual)
+    const unsubscribePodUpdate = webSocketService.onPodUpdate('*', (data) => {
+      console.log('📊 Cliente: Pod update recibido:', data);
+      
+      // Actualizar el pod específico en la lista
+      setPods(prevPods => 
+        prevPods.map(pod => 
+          pod.podId === data.podId 
+            ? { 
+                ...pod, 
+                status: data.status,
+                stats: data.stats || pod.stats,
+                httpServices: data.httpServices || pod.httpServices,
+                tcpServices: data.tcpServices || pod.tcpServices
+              }
+            : pod
+        )
+      );
+    });
+
+    // Suscribirse a notificaciones de pods creados
+    const unsubscribePodCreated = webSocketService.onPodCreated((data) => {
+      console.log('🎆 Cliente: Pod creado:', data);
+      // Recargar lista para obtener el nuevo pod
+      fetchPods();
+    });
+
+    // Suscribirse a notificaciones de pods eliminados
+    const unsubscribePodDeleted = webSocketService.onPodDeleted((data) => {
+      console.log('🗑️ Cliente: Pod eliminado:', data);
+      setPods(prevPods => prevPods.filter(pod => pod.podId !== data.podId));
+    });
+
+    // Cleanup
+    return () => {
+      unsubscribePodUpdate();
+      unsubscribePodCreated();
+      unsubscribePodDeleted();
+    };
+  }, []); // Sin dependencias porque las suscripciones son estáticas para el cliente
+
+  // 🔧 NUEVO: Función para cargar pods (extraída para reutilización)
+  const fetchPods = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const fetchedPods = await podService.getPods();
+      setPods(fetchedPods);
+    } catch (err: unknown) {
+      console.error('Error al cargar pods:', err);
+      setError('No se pudieron cargar los pods. Por favor, intenta de nuevo.');
+      toast.error('Error al cargar pods');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Cargar pods desde el servicio al iniciar
   useEffect(() => {
-    const fetchPods = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const fetchedPods = await podService.getPods();
-        setPods(fetchedPods);
-      } catch (err: unknown) {
-        console.error('Error al cargar pods:', err);
-        setError('No se pudieron cargar los pods. Por favor, intenta de nuevo.');
-        toast.error('Error al cargar pods');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchPods();
   }, []);
   

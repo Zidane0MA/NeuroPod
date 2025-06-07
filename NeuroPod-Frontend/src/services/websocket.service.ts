@@ -231,23 +231,37 @@ class WebSocketService {
 
   // Método helper para componentes React
   onPodUpdate(podId: string, callback: (data: any) => void) {
-    // Suscribirse al pod
-    this.subscribeToPod(podId);
-
-    // Escuchar eventos de actualización
-    const handleUpdate = (event: CustomEvent) => {
-      if (event.detail.podId === podId) {
+    // Si es wildcard (*), escuchar todas las actualizaciones
+    if (podId === '*') {
+      const handleUpdate = (event: CustomEvent) => {
         callback(event.detail);
-      }
-    };
+      };
 
-    window.addEventListener('podUpdate', handleUpdate as EventListener);
+      window.addEventListener('podUpdate', handleUpdate as EventListener);
 
-    // Retornar función de limpieza
-    return () => {
-      window.removeEventListener('podUpdate', handleUpdate as EventListener);
-      this.unsubscribeFromPod(podId);
-    };
+      // Retornar función de limpieza
+      return () => {
+        window.removeEventListener('podUpdate', handleUpdate as EventListener);
+      };
+    } else {
+      // Suscribirse al pod específico
+      this.subscribeToPod(podId);
+
+      // Escuchar eventos de actualización
+      const handleUpdate = (event: CustomEvent) => {
+        if (event.detail.podId === podId) {
+          callback(event.detail);
+        }
+      };
+
+      window.addEventListener('podUpdate', handleUpdate as EventListener);
+
+      // Retornar función de limpieza
+      return () => {
+        window.removeEventListener('podUpdate', handleUpdate as EventListener);
+        this.unsubscribeFromPod(podId);
+      };
+    }
   }
 
   // Método helper para logs
@@ -262,6 +276,58 @@ class WebSocketService {
 
     return () => {
       window.removeEventListener('podLogs', handleLogs as EventListener);
+    };
+  }
+
+  // 🔧 NUEVO: Método helper para notificaciones de pods creados
+  onPodCreated(callback: (data: any) => void) {
+    const handleCreated = (event: CustomEvent) => {
+      callback(event.detail);
+    };
+
+    window.addEventListener('podCreated', handleCreated as EventListener);
+
+    return () => {
+      window.removeEventListener('podCreated', handleCreated as EventListener);
+    };
+  }
+
+  // 🔧 NUEVO: Método helper para notificaciones de pods eliminados
+  onPodDeleted(callback: (data: any) => void) {
+    const handleDeleted = (event: CustomEvent) => {
+      callback(event.detail);
+    };
+
+    window.addEventListener('podDeleted', handleDeleted as EventListener);
+
+    return () => {
+      window.removeEventListener('podDeleted', handleDeleted as EventListener);
+    };
+  }
+
+  // 🔧 NUEVO: Método helper para notificaciones administrativas
+  onAdminNotification(callback: (data: any) => void) {
+    const handleAdmin = (event: CustomEvent) => {
+      callback(event.detail);
+    };
+
+    window.addEventListener('adminNotification', handleAdmin as EventListener);
+
+    return () => {
+      window.removeEventListener('adminNotification', handleAdmin as EventListener);
+    };
+  }
+
+  // 🔧 NUEVO: Método helper para alertas de saldo bajo
+  onLowBalanceAlert(callback: (data: any) => void) {
+    const handleLowBalance = (event: CustomEvent) => {
+      callback(event.detail);
+    };
+
+    window.addEventListener('lowBalanceAlert', handleLowBalance as EventListener);
+
+    return () => {
+      window.removeEventListener('lowBalanceAlert', handleLowBalance as EventListener);
     };
   }
 }

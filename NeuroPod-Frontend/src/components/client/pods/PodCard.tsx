@@ -39,31 +39,33 @@ export const PodCard: React.FC<PodCardProps> = ({
   // 📡 Actualizar pod cuando llegan datos por WebSocket
   useEffect(() => {
     if (podData) {
-      const updatedPod = {
-        ...pod,
-        status: podData.status,
-        stats: podData.stats || pod.stats,
-        // 🔧 Arreglo: Agregar fallback para arrays undefined
-        httpServices: (podData.httpServices || pod.httpServices || []).map((svc: any) => ({
-          ...svc,
-          isCustom: svc.isCustom ?? false
-        })),
-        tcpServices: (podData.tcpServices || pod.tcpServices || []).map((svc: any) => ({
-          ...svc,
-          isCustom: svc.isCustom ?? false
-        }))
-      };
-      
-      setPod(updatedPod);
-      
-      // Notificar al componente padre si es necesario
-      if (onPodUpdate) {
-        onPodUpdate(updatedPod);
-      }
-      
-      console.log(`📊 Pod ${pod.podId} actualizado via WebSocket:`, podData);
+      // Usar callback para acceder al estado actual sin dependencias
+      setPod(currentPod => {
+        const updatedPod = {
+          ...currentPod,
+          status: podData.status,
+          stats: podData.stats || currentPod.stats,
+          // 🔧 Arreglo: Agregar fallback para arrays undefined
+          httpServices: (podData.httpServices || currentPod.httpServices || []).map((svc: any) => ({
+            ...svc,
+            isCustom: svc.isCustom ?? false
+          })),
+          tcpServices: (podData.tcpServices || currentPod.tcpServices || []).map((svc: any) => ({
+            ...svc,
+            isCustom: svc.isCustom ?? false
+          }))
+        };
+        
+        // Notificar al componente padre si es necesario
+        if (onPodUpdate) {
+          onPodUpdate(updatedPod);
+        }
+        
+        console.log(`📊 Pod ${updatedPod.podId} actualizado via WebSocket:`, podData);
+        return updatedPod;
+      });
     }
-  }, [podData, pod.podId, onPodUpdate]);
+  }, [podData, onPodUpdate]); // ✅ Removido 'pod' y 'pod.podId' de las dependencias
   
   // 🔄 Actualizar cuando cambie el pod inicial (props)
   useEffect(() => {
@@ -108,9 +110,13 @@ export const PodCard: React.FC<PodCardProps> = ({
             {/* 📡 Indicador de conexión WebSocket */}
             <div className="flex items-center gap-1 ml-2">
               {connectionStatus.connected ? (
-                <Wifi className="h-4 w-4 text-green-500" title="Conexión en tiempo real activa" />
+                <span title="Conexión en tiempo real activa">
+                  <Wifi className="h-4 w-4 text-green-500" />
+                </span>
               ) : (
-                <WifiOff className="h-4 w-4 text-red-500" title="Sin conexión en tiempo real" />
+                <span title="Sin conexión en tiempo real">
+                  <WifiOff className="h-4 w-4 text-red-500" />
+                </span>
               )}
             </div>
           </CardTitle>

@@ -23,10 +23,29 @@ class WebSocketService {
       return;
     }
 
-    // Determinar URL del servidor
-    const serverUrl = import.meta.env.PROD 
-      ? 'https://api.neuropod.online'
-      : `http://${window.location.hostname}:3000`;
+    // 🔧 CORREGIDO: Determinar URL del servidor con detección automática de HTTPS
+    let serverUrl: string;
+    
+    // Detectar si estamos en producción basándose en el protocolo y hostname
+    const isHTTPS = window.location.protocol === 'https:';
+    const isProductionDomain = window.location.hostname.includes('neuropod.online');
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    if (isProductionDomain && isHTTPS) {
+      // Producción con HTTPS → usar api.neuropod.online con HTTPS
+      serverUrl = 'https://api.neuropod.online';
+      console.log('🌐 WebSocket: Modo producción HTTPS detectado → usando', serverUrl);
+    } else if (isLocalhost) {
+      // Desarrollo local → usar localhost con HTTP
+      serverUrl = `http://${window.location.hostname}:3000`;
+      console.log('🛠️ WebSocket: Modo desarrollo local detectado → usando', serverUrl);
+    } else {
+      // Fallback para otros casos
+      serverUrl = import.meta.env.PROD 
+        ? 'https://api.neuropod.online'
+        : `http://${window.location.hostname}:3000`;
+      console.log('⚠️ WebSocket: Fallback detectado → usando', serverUrl);
+    }
 
     try {
       // Crear conexión Socket.IO con autenticación

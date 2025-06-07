@@ -75,9 +75,13 @@ export const PodLogsDialog: React.FC<PodLogsDialogProps> = ({ pod, viewLogs, log
                 {/* 📡 Indicador de conexión WebSocket */}
                 <div className="flex items-center gap-1">
                   {connectionStatus.connected ? (
-                    <Wifi className="h-4 w-4 text-green-500" title="Logs en tiempo real" />
+                    <Wifi className="h-4 w-4 text-green-500">
+                      <title>Logs en tiempo real</title>
+                    </Wifi>
                   ) : (
-                    <WifiOff className="h-4 w-4 text-red-500" title="Sin conexión en tiempo real" />
+                    <WifiOff className="h-4 w-4 text-red-500">
+                      <title>Sin conexión en tiempo real</title>
+                    </WifiOff>
                   )}
                 </div>
               </DialogTitle>

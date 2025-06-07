@@ -293,7 +293,7 @@ const AdminPods = () => {
       
       // Eliminar en el backend
       await podService.deletePod(podId);
-      toast.success(`Pod ${podToDelete.podName} eliminado correctamente`);
+      // 🔧 ELIMINADO: toast.success - ahora WebSocket maneja las notificaciones
     } catch (err) {
       console.error('Error al eliminar pod:', err);
       // Recargar los pods si hay error (solo para pods reales)

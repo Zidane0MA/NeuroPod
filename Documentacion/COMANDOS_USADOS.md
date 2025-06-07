@@ -41,9 +41,13 @@ kubectl describe pod comfyui-gpu-test
 # Ver logs del pod para debugging
 kubectl logs comfyui-gpu-test
 
-# Verificar el servicio e ingress
+# Verificar el servicio, pvc e ingress
 kubectl get svc comfyui-gpu-test-service
+kubectl get pvc comfyui-gpu-test-pvc
 kubectl get ingress comfyui-gpu-test-ingress
+
+# (En caso de fallos) Ver logs de NGINX para debugging
+kubectl logs -n ingress-nginx deployment/ingress-nginx-controller
 ```
 
 # Comandos para verificar si se usa ingress correctamente

@@ -24,14 +24,15 @@ export const PodConnectDialog: React.FC<PodConnectDialogProps> = React.memo(({ p
   const [isOpen, setIsOpen] = useState(false);
 
   // 🔧 Memorizar propiedades clave del pod para evitar recalcular
+  const isSimulatedValue = (pod as SimulatedPod).isSimulated === true;
   const podData = useMemo(() => ({
     podId: pod.podId,
     podName: pod.podName,
     status: pod.status,
     httpServices: pod.httpServices,
     tcpServices: pod.tcpServices,
-    isSimulated: (pod as SimulatedPod).isSimulated === true
-  }), [pod.podId, pod.podName, pod.status, pod.httpServices, pod.tcpServices, (pod as SimulatedPod).isSimulated]);
+    isSimulated: isSimulatedValue
+  }), [pod, isSimulatedValue]);
 
   const { isSimulated } = podData;
 

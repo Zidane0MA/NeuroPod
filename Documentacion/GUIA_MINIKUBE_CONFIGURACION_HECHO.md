@@ -61,7 +61,7 @@ minikube delete --all --purge
 # Iniciar Minikube de forma temporal
 minikube start --driver=docker --container-runtime=docker --gpus=all --memory=12000mb --cpus=8
 
-# Reiniciar el equipo si el comando anterior se queda parado
+# Reiniciar el equipo si el comando anterior no arranca
 shutdown /r
 
 # Acceder a Minikube y crear la ruta para workspace

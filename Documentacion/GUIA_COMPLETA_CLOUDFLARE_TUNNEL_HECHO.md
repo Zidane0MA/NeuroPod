@@ -178,24 +178,32 @@ Page Rules:
       ingress:
       # Frontend React
       - hostname: app.neuropod.online
-         service: http://localhost:5173
-      
-      # Backend API
+        service: http://localhost:5173
+
+      # Backend API con soporte WebSocket
       - hostname: api.neuropod.online
-         service: http://localhost:3000
-      
-      # Wildcard para los pods de usuario - CONFIGURACIÓN MEJORADA
+        service: http://localhost:3000
+        originRequest:
+          noTLSVerify: true
+          connectTimeout: 30s
+          tlsTimeout: 30s
+          tcpKeepAlive: 30s
+          # 🔧 IMPORTANTE: Configuración para WebSockets
+          disableChunkedEncoding: true
+          http2Origin: false
+          # 🔧 NUEVO: Soporte explícito para WebSocket
+          upgradeRequest: true
+
+      # Wildcard para pods
       - hostname: "*.neuropod.online"
-         service: https://localhost:443
-         originRequest:
-            noTLSVerify: true
-            # Configuración importante para WebSockets (Jupyter Lab)
-            connectTimeout: 30s
-            tlsTimeout: 30s
-            tcpKeepAlive: 30s
-            disableChunkedEncoding: true # Ayuda con ciertos problemas WebSocket
-            # Configuración para tokens de acceso y Jupyter Lab
-            http2Origin: false
+        service: https://localhost:443
+        originRequest:
+          noTLSVerify: true   # ← CRÍTICO: acepta certificados autofirmados
+          connectTimeout: 30s
+          tlsTimeout: 30s
+          tcpKeepAlive: 30s
+          disableChunkedEncoding: true
+          http2Origin: false
 
       # Fallback
       - service: http_status:404

@@ -59,7 +59,7 @@ docker info | Select-String "Runtimes"
 minikube delete --all --purge
 
 # Iniciar Minikube de forma temporal
-minikube start --driver=docker --container-runtime=docker --gpus=all --memory=14000mb --cpus=8
+minikube start --driver=docker --container-runtime=docker --gpus=all --memory=12000mb --cpus=8
 
 # Reiniciar el equipo si el comando anterior se queda parado
 shutdown /r
@@ -83,7 +83,7 @@ kubectl delete storageclass standard
 kubectl apply -f neuropod-k8s.yaml
 
 # Iniciar Minukibe con todas las configuraciones
-minikube start --driver=docker --container-runtime=docker --gpus=all --memory=14000mb --cpus=8 --addons=ingress,storage-provisioner,default-storageclass
+minikube start --driver=docker --container-runtime=docker --gpus=all --memory=12000mb --cpus=8 --addons=ingress,storage-provisioner,default-storageclass
 
 # Verificar que Minikube está funcionando
 minikube status

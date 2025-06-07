@@ -34,7 +34,7 @@ REM ===============================
 REM Iniciar Minikube
 REM ===============================
 echo Iniciando Minikube...
-start "Iniciar minikube" cmd /k minikube start --driver=docker --container-runtime=docker --gpus=all --memory=14000mb --cpus=8 --addons=ingress,storage-provisioner,default-storageclass
+start "Iniciar minikube" cmd /k minikube start --driver=docker --container-runtime=docker --gpus=all --memory=12000mb --cpus=8 --addons=ingress,storage-provisioner,default-storageclass
 timeout /t 15 /nobreak >nul
 echo Esperando a que Minikube esté listo...
 

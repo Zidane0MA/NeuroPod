@@ -11,9 +11,7 @@ class PodMonitorService {
   }
 
   // Inicializar el servicio de monitoreo con instancia de Socket.IO
-  init(socketIO) {
-    console.log('🔍 Iniciando servicio de monitoreo de pods...');
-    
+  init(socketIO) {    
     this.io = socketIO;
     
     // Iniciar monitoreo periódico

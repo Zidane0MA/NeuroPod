@@ -259,8 +259,6 @@ exports.googleLogin = async (req, res) => {
       });
     }
     
-    console.log('Payload extraído:', payload);
-    
     // Crear objeto con información del usuario
     const googleUser = {
       googleId: payload.sub || payload.user_id || payload.id,
@@ -582,6 +580,18 @@ exports.updateUserBalance = async (req, res) => {
     
     user.balance = balance;
     await user.save();
+    
+    // 🔥 AGREGAR: Notificar actualización de saldo
+    const io = req.app.get('io');
+    if (io) {
+      // Enviar notificación de actualización de saldo (no necesariamente alerta)
+      io.to(`user:${user._id}`).emit('balanceUpdate', {
+        type: 'balanceUpdate',
+        newBalance: balance,
+        updatedBy: req.user.email,
+        timestamp: new Date().toISOString()
+      });
+    }
     
     // Registrar acción
     await logAction(req.user._id, 'UPDATE_USER_BALANCE', { 

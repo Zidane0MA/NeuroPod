@@ -29,7 +29,7 @@ wt -w 0 nt -p "Windows PowerShell" --title "Cloudflare Tunnel" powershell -NoExi
 # ===============================
 # Iniciar Minikube
 # ===============================
-wt -w 0 nt -p "Windows PowerShell" --title "Minikube" powershell -NoExit -Command "minikube start --driver=docker --container-runtime=docker --gpus=all --memory=14000mb --cpus=8 --addons=ingress,storage-provisioner,default-storageclass"
+wt -w 0 nt -p "Windows PowerShell" --title "Minikube" powershell -NoExit -Command "minikube start --driver=docker --container-runtime=docker --gpus=all --memory=12000mb --cpus=8 --addons=ingress,storage-provisioner,default-storageclass"
 Start-Sleep -Seconds 23
 Write-Host "Esperando a que Minikube esté listo..."
 

@@ -29,8 +29,6 @@ class KubernetesService {
       this.k8sApi = null;
       this.k8sNetworkingApi = null;
     }
-    
-    console.log('✅ KubernetesService initialized - Available:', this.isKubernetesAvailable());
   }
 
   // Verificar si Kubernetes está disponible
@@ -64,8 +62,6 @@ class KubernetesService {
       if (!this.k8sApi || typeof this.k8sApi.readNamespacedPersistentVolumeClaim !== 'function') {
         throw new Error('Cliente de Kubernetes no está correctamente inicializado');
       }
-      
-
       
       // Verificar si ya existe
       try {
@@ -208,7 +204,7 @@ class KubernetesService {
         ingressClassName: process.env.INGRESS_CLASS || 'neuropod-nginx',
         tls: [{
           hosts: [subdomain],
-          secretName: 'neuropod-tls'
+          secretName: process.env.TLS_SECRET_NAME || 'neuropod-tls'
         }],
         rules: [{
           host: subdomain,
@@ -315,15 +311,16 @@ class KubernetesService {
     const podFullName = `${sanitizedPodName}-${userHash}`;
     console.log('✅ Generated pod name:', podFullName);
     
-    // Configurar límites de recursos
+    // Configurar límites de recursos basados en variables de entorno
+    // Valores optimizados para el sistema actual (16GB RAM, 8 CPUs)
     const resourceLimits = {
-      memory: `${containerDiskSize}Gi`,
-      cpu: '2',
+      memory: process.env.POD_MEMORY_LIMIT || '11Gi',    // Máximo por pod
+      cpu: process.env.POD_CPU_LIMIT || '2',             // Máximo por pod
     };
     
     const resourceRequests = {
-      memory: `${Math.floor(containerDiskSize * 0.5)}Gi`,
-      cpu: '0.5'
+      memory: process.env.POD_MEMORY_REQUEST || '6Gi',   // Mínimo garantizado
+      cpu: process.env.POD_CPU_REQUEST || '1'            // Mínimo garantizado
     };
     
     // Configurar GPU
@@ -567,12 +564,32 @@ class KubernetesService {
     const podFullName = `${sanitizedPodName}-${userHash}`;
     
     try {
-      // Leer información del pod
+      // Leer información del pod desde Kubernetes
       const response = await this.k8sApi.readNamespacedPod({ name: podFullName, namespace: 'default' });
-      const pod = response.body;
       
+      // Detectar automáticamente dónde están los datos del pod
+      // Diferentes versiones del cliente de Kubernetes usan estructuras diferentes
+      let podData = null;
+      if (response.body) {
+        podData = response.body;
+      } else if (response.response && response.response.body) {
+        podData = response.response.body;
+      } else if (response.data) {
+        podData = response.data;
+      } else if (response.status && response.metadata) {
+        // Los datos están directamente en response (versión actual)
+        podData = response;
+      } else {
+        throw new Error('No se encontraron datos del pod en la respuesta de Kubernetes');
+      }
+      
+      if (!podData.status) {
+        throw new Error('Pod data status is undefined');
+      }
+      
+      // Mapear estado de Kubernetes a estado interno
       let status;
-      switch (pod.status.phase) {
+      switch (podData.status.phase) {
         case 'Running':
           status = 'running';
           break;
@@ -596,7 +613,7 @@ class KubernetesService {
       return { status, metrics };
       
     } catch (error) {
-      if (error.statusCode === 404) {
+      if (error.statusCode === 404 || error.status === 404) {
         return { status: 'stopped', metrics: null };
       }
       throw error;

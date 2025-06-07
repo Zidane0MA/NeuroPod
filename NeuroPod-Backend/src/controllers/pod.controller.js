@@ -6,6 +6,13 @@ const podMonitorService = require('../services/podMonitor.service');
 const { logAction } = require('../utils/logger');
 
 // =========================================
+// FUNCIÓN HELPER PARA OBTENER IO
+// =========================================
+function getSocketIO(req) {
+  return req.app.get('io');
+}
+
+// =========================================
 // CONTROLADORES PRINCIPALES
 // =========================================
 
@@ -42,8 +49,6 @@ exports.getPodConnections = async (req, res) => {
     const updatedPod = await Pod.findOne({ podId });
     const connectionInfo = updatedPod.getConnectionInfo();
     
-    await logAction(req.user._id, 'GET_POD_CONNECTIONS', { podId });
-    
     res.status(200).json({
       success: true,
       data: connectionInfo
@@ -68,6 +73,20 @@ exports.createPod = async (req, res) => {
     // Procesar configuración y crear pod
     const { finalDockerImage, httpServices, tcpServices } = await processPodConfiguration(req.body);
     const pod = await createPodRecord(req.body, podOwner, req.user, finalDockerImage, httpServices, tcpServices);
+    
+    // 🔥 AGREGAR: Notificar creación de pod por WebSocket
+    const io = getSocketIO(req);
+    if (io && io.notifyPodCreated) {
+      io.notifyPodCreated(podOwner._id.toString(), {
+        podId: pod.podId,
+        podName: pod.podName,
+        status: pod.status,
+        gpu: pod.gpu,
+        containerDiskSize: pod.containerDiskSize,
+        volumeDiskSize: pod.volumeDiskSize,
+        createdBy: req.user.email
+      });
+    }
     
     // Crear recursos en Kubernetes (asíncrono)
     createKubernetesResourcesAsync(pod, podOwner, req.body);
@@ -109,6 +128,18 @@ exports.startPod = async (req, res) => {
     // Actualizar estado inmediatamente
     await updatePodStatus(pod, 'creating');
     
+    // 🔥 AGREGAR: Notificar actualización por WebSocket
+    const io = getSocketIO(req);
+    if (io && io.sendPodUpdate) {
+      io.sendPodUpdate(pod.podId, {
+        status: 'creating',
+        stats: pod.stats,
+        httpServices: pod.httpServices,
+        tcpServices: pod.tcpServices,
+        message: 'Pod iniciándose...'
+      });
+    }
+    
     await logAction(req.user._id, 'START_POD', { podId });
     
     res.status(200).json({
@@ -136,6 +167,18 @@ exports.stopPod = async (req, res) => {
     // Actualizar estado inmediatamente
     await updatePodStatus(pod, 'stopped');
     
+    // 🔥 AGREGAR: Notificar actualización por WebSocket
+    const io = getSocketIO(req);
+    if (io && io.sendPodUpdate) {
+      io.sendPodUpdate(pod.podId, {
+        status: 'stopped',
+        stats: pod.stats,
+        httpServices: pod.httpServices,
+        tcpServices: pod.tcpServices,
+        message: 'Pod detenido correctamente'
+      });
+    }
+    
     await logAction(req.user._id, 'STOP_POD', { podId });
     
     res.status(200).json({
@@ -158,6 +201,12 @@ exports.deletePod = async (req, res) => {
     // Detener el pod primero si está en ejecución
     if (['running', 'creating'].includes(pod.status)) {
       await stopPodResources(pod, true); // true = eliminar PVC
+    }
+    
+    // 🔥 AGREGAR: Notificar eliminación por WebSocket ANTES de eliminar
+    const io = getSocketIO(req);
+    if (io && io.notifyPodDeleted) {
+      io.notifyPodDeleted(pod.userId.toString(), pod.podId);
     }
     
     // Eliminar el pod de la base de datos
@@ -361,12 +410,36 @@ async function createPodRecord(body, podOwner, currentUser, finalDockerImage, ht
   });
 }
 
+// =========================================
+// NUEVA FUNCIÓN: Notificar actualizaciones de saldo
+// =========================================
+
+// Función para notificar saldo bajo
+function checkAndNotifyLowBalance(userId, currentBalance, threshold = 5.0) {
+  if (currentBalance <= threshold) {
+    const app = require('../app');
+    const io = app.get('io');
+    if (io && io.sendLowBalanceAlert) {
+      io.sendLowBalanceAlert(userId.toString(), {
+        currentBalance,
+        threshold,
+        message: `Tu saldo es bajo: €${currentBalance.toFixed(2)}. Considera recargar tu cuenta.`
+      });
+    }
+  }
+}
+
 async function deductBalanceIfClient(podOwner, body) {
   if (podOwner.role === 'client') {
     const cost = await calculatePodCostAsync(body);
-    await User.findByIdAndUpdate(podOwner._id, { 
-      $inc: { balance: -cost } 
-    });
+    const updatedUser = await User.findByIdAndUpdate(
+      podOwner._id, 
+      { $inc: { balance: -cost } },
+      { new: true }
+    );
+    
+    // 🔥 AGREGAR: Verificar y notificar saldo bajo
+    checkAndNotifyLowBalance(podOwner._id, updatedUser.balance);
   }
 }
 
@@ -449,6 +522,18 @@ function createKubernetesResourcesAsync(pod, podOwner, body) {
       pod.status = 'creating';
       await pod.save();
       
+      // 🔥 AGREGAR: Notificar cambio de estado
+      const app = require('../app'); // Obtener app para acceder a io
+      const io = app.get('io');
+      if (io && io.sendPodUpdate) {
+        io.sendPodUpdate(pod.podId, {
+          status: 'creating',
+          httpServices: pod.httpServices,
+          tcpServices: pod.tcpServices,
+          message: 'Recursos de Kubernetes creados, pod inicializándose...'
+        });
+      }
+      
       console.log(`✅ Pod ${pod.podName} creado exitosamente con URLs reales`);
       
       // Capturar token de Jupyter si es necesario
@@ -460,6 +545,16 @@ function createKubernetesResourcesAsync(pod, podOwner, body) {
       console.error('Error creando recursos Kubernetes:', err);
       pod.status = 'error';
       await pod.save();
+      
+      // 🔥 AGREGAR: Notificar error
+      const app = require('../app');
+      const io = app.get('io');
+      if (io && io.sendPodUpdate) {
+        io.sendPodUpdate(pod.podId, {
+          status: 'error',
+          message: 'Error al crear recursos de Kubernetes'
+        });
+      }
     }
   });
 }
@@ -498,10 +593,30 @@ function recreateKubernetesResourcesAsync(pod) {
       
       await updatePodStatus(pod, 'creating');
       
+      // 🔥 AGREGAR: Notificar actualización
+      const app = require('../app');
+      const io = app.get('io');
+      if (io && io.sendPodUpdate) {
+        io.sendPodUpdate(pod.podId, {
+          status: 'creating',
+          message: 'Pod reiniciándose...'
+        });
+      }
+      
     } catch (err) {
       console.error('Error iniciando pod:', err);
       pod.status = 'error';
       await pod.save();
+      
+      // 🔥 AGREGAR: Notificar error
+      const app = require('../app');
+      const io = app.get('io');
+      if (io && io.sendPodUpdate) {
+        io.sendPodUpdate(pod.podId, {
+          status: 'error',
+          message: 'Error al iniciar pod'
+        });
+      }
     }
   });
 }
@@ -511,8 +626,29 @@ function deleteKubernetesResourcesAsync(pod) {
     try {
       await stopPodResources(pod, false); // false = conservar PVC
       await updatePodStatus(pod, 'stopped');
+      
+      // 🔥 AGREGAR: Notificar detención
+      const app = require('../app');
+      const io = app.get('io');
+      if (io && io.sendPodUpdate) {
+        io.sendPodUpdate(pod.podId, {
+          status: 'stopped',
+          message: 'Pod detenido correctamente'
+        });
+      }
+      
     } catch (err) {
       console.error('Error deteniendo pod:', err);
+      
+      // 🔥 AGREGAR: Notificar error
+      const app = require('../app');
+      const io = app.get('io');
+      if (io && io.sendPodUpdate) {
+        io.sendPodUpdate(pod.podId, {
+          status: 'error',
+          message: 'Error al detener pod'
+        });
+      }
     }
   });
 }

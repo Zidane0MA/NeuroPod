@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Server, Zap } from "lucide-react";
+import { Server, Zap, Wifi, WifiOff } from "lucide-react";
 import { Pod } from "@/types/pod";
 import { PodStats } from "./PodStats";
 import { PodActions } from "./PodActions";
+import { usePodUpdates } from "@/hooks/usePodUpdates";
 
 interface PodCardProps {
   pod: Pod;
@@ -12,15 +13,77 @@ interface PodCardProps {
   onDeletePod: (podId: string) => void;
   viewLogs: (podName: string) => void;
   logs: string;
+  onPodUpdate?: (updatedPod: Pod) => void; // Nueva prop para manejar actualizaciones
 }
 
 export const PodCard: React.FC<PodCardProps> = ({
-  pod,
+  pod: initialPod,
   onTogglePod,
   onDeletePod,
   viewLogs,
-  logs
+  logs,
+  onPodUpdate
 }) => {
+  // 🔧 Asegurar que el pod tenga las propiedades necesarias
+  const sanitizePod = (podData: any) => ({
+    ...podData,
+    httpServices: podData.httpServices || [],
+    tcpServices: podData.tcpServices || [],
+    stats: podData.stats || {}
+  });
+  
+  // 🔄 Estado local del pod y WebSocket
+  const [pod, setPod] = useState(() => sanitizePod(initialPod));
+  const { podData, connectionStatus } = usePodUpdates(pod.podId);
+  
+  // 📡 Actualizar pod cuando llegan datos por WebSocket
+  useEffect(() => {
+    if (podData) {
+      const allowedStatuses = ["running", "stopped", "creating", "error"] as const;
+      const status = allowedStatuses.includes(podData.status as any)
+        ? (podData.status as typeof allowedStatuses[number])
+        : "error";
+      
+      const updatedStats = podData.stats
+        ? {
+            ...podData.stats,
+            lastUpdated:
+              typeof podData.stats.lastUpdated === "string"
+                ? new Date(podData.stats.lastUpdated)
+                : podData.stats.lastUpdated,
+          }
+        : pod.stats;
+
+      const updatedPod = {
+        ...pod,
+        status,
+        stats: updatedStats,
+        // 🔧 Arreglo: Agregar fallback para arrays undefined
+        httpServices: (podData.httpServices || pod.httpServices || []).map((svc: any) => ({
+          ...svc,
+          isCustom: svc.isCustom ?? false, // Default to false if missing
+        })),
+        tcpServices: (podData.tcpServices || pod.tcpServices || []).map((svc: any) => ({
+          ...svc,
+          isCustom: svc.isCustom ?? false, // Default to false if missing
+        }))
+      };
+      
+      setPod(updatedPod);
+      
+      // Notificar al componente padre si es necesario
+      if (onPodUpdate) {
+        onPodUpdate(updatedPod);
+      }
+      
+      console.log(`📊 Pod ${pod.podId} actualizado via WebSocket:`, podData);
+    }
+  }, [podData, pod.podId, onPodUpdate]);
+  
+  // 🔄 Actualizar cuando cambie el pod inicial (props)
+  useEffect(() => {
+    setPod(sanitizePod(initialPod));
+  }, [initialPod]);
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "running":
@@ -56,6 +119,15 @@ export const PodCard: React.FC<PodCardProps> = ({
             <Server className="h-5 w-5 text-primary" />
             {pod.podName}
             {getStatusBadge(pod.status)}
+            
+            {/* 📡 Indicador de conexión WebSocket */}
+            <div className="flex items-center gap-1 ml-2">
+              {connectionStatus.connected ? (
+                <Wifi className="h-4 w-4 text-green-500" title="Conexión en tiempo real activa" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-red-500" title="Sin conexión en tiempo real" />
+              )}
+            </div>
           </CardTitle>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Zap className="h-4 w-4" />
@@ -64,6 +136,16 @@ export const PodCard: React.FC<PodCardProps> = ({
               <>
                 <span className="text-gray-300">•</span>
                 <span>Usuario: {pod.userEmail}</span>
+              </>
+            )}
+            
+            {/* 🕐 Indicador de última actualización */}
+            {podData && (
+              <>
+                <span className="text-gray-300">•</span>
+                <span className="text-green-600 text-xs">
+                  Actualizado {new Date(podData.timestamp).toLocaleTimeString()}
+                </span>
               </>
             )}
           </div>

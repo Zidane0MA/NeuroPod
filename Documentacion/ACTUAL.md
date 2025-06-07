@@ -2,9 +2,7 @@
 
 > **Estado General**: Proyecto funcional con frontend completo, sistema de precios dinámico implementado, gestión de usuarios 100% funcional, y **sistema de balance de administradores completamente solucionado**
 
-## 🎯 Tareas Inmediatas Pendientes
-
----
+# Instrucciones del Proyecto NeuroPod - Estado Actual (Actualizado)
 
 ## 📈 Estado de Funcionalidades Actualizado
 
@@ -15,63 +13,67 @@
 | **Gestión Usuarios (UI)** | ✅ | ✅ | ✅ | **Funcional** |
 | **Gestión Usuarios (API)** | ✅ | ✅ | ✅ | **Funcional** |
 | **Sistema Templates** | ✅ | ✅ | ✅ | **Funcional** |
-| **Gestión Pods** | ✅ | 🔄 | 🔄 | **Simulado** |
-| **Kubernetes Deploy** | ✅ | 🔄 | 🔄 | **Manual** |
+| **WebSockets** | ✅ | ✅ | 🔄 | **Implementado** |
+| **Gestión Pods** | ✅ | ✅ | 🔄 | **Listo para Testing** |
+| **Kubernetes Deploy** | ✅ | ✅ | 🔄 | **Integrado** |
 | **Subdominios Dinámicos** | ✅ | ✅ | ✅ | **Configurado** |
-| **WebSockets** | ✅ | 🔄 | 🔄 | **Preparado** |
 
 ### **Leyenda**:
 - ✅ **Completado y funcional**
-- 🔄 **Parcialmente implementado**  
+- 🔄 **Implementado, necesita testing de los casos de jupyter**  
 - ❌ **Pendiente de implementar**
 
-## **Prioridad Alta (Funcionalidad Básica)**
+## 🎯 Estado del Proyecto
 
-### 1. **Actualizar Creación de Pods con Certificados (Estimado: 1-2 horas)**
-```bash
-# Usar certificados OpenSSL generados
-- Modificar manifiestos para usar neuropod-tls secret manejado desde una variable de entorno
-- Actualizar controller de pods
-- Probar automaticación de pods con certificados
-```
+**Frontend:** 98% Completamente desarrollado y funcional  
+**Backend:** 99% Desarrollado con API completa implementada  
+**Integración:** 90% Lista para testing completo  
+
+**Infraestructura:**
+- Minikube/Kubernetes: ✅ Configurado y funcionando
+- Cloudflare Tunnel: ✅ Configurado y conectando correctamente  
+- MongoDB: ✅ Configurado con seeders aplicados
+- Scripts de automatización: ✅ Script PowerShell funcional
+
+## 🔧 Próximos Pasos (Testing y Refinamiento)
+
+### **1. WebSockets Testing**
+- **Objetivo:** Verificar notificaciones en tiempo real en el frontend
+- **Estado:** Backend implementado, necesita testing desde navegador
+- **Archivos:** `src/socket.js`, `websocket.service.ts`
+
+### **2. Casos Edge de Creación de Pods**
+- **Objetivo:** Manejar errores, timeouts, estados intermedios
+- **Estado:** Lógica básica implementada, necesita refinamiento
+
+## 🛠️ Configuración Técnica existente
+
+**OS:** Windows  
+**Cluster:** Minikube con Docker driver  
+**Ingress:** NGINX Ingress Controller configurado  
+**Tunnel:** Cloudflare Tunnel exponiendo puerto 443  
+**DNS:** Configurado con wildcard para subdominios dinámicos  
+**Automatización:** Script PowerShell para inicio de servicios  
+
+📋 YA NO necesito ayuda con:
+
+✅ Configuración inicial de servicios (completado)
+✅ Script de automatización (funcional)
+✅ Configuración de Cloudflare Tunnel (operativo)
+✅ Configuración básica de Minikube (operativo)
+✅ Sistema de recursos RAM/CPU (corregido)
+✅ Variables de entorno TLS (implementado)
+✅ WebSockets backend (implementado)
+
+📚 RECOMENDACIONES
+
+Leer README_FRONTEND.md y README_BACKEND.md para contexto completo
+Usar MANUAL_ENDPOINTS_API_EN_FRONTEND.md para referencia de API
+Para archivos, usar protocolo MCP filesystem
 
 ### 2. **Implementar WebSockets (Estimado: 1-2 horas)**
 
 ### 📊 Estado Real de WebSockets
-
-#### Backend (95% Completado)
-- **socket.js**: Implementación avanzada
-  - Autenticación JWT completa para conexiones WebSocket
-  - Salas de usuarios (`user:${userId}`, `admins`)
-  - Eventos implementados:
-    - `subscribe`/`unsubscribe` a pods específicos
-    - `requestLogs` para logs en tiempo real
-    - `ping`/`pong` para mantener conexión viva
-  - Funciones de notificación:
-    - `sendPodUpdate()`, `notifyPodCreated()`, `notifyPodDeleted()`
-    - `notifyAdmins()`, `sendLowBalanceAlert()`
-  - Manejo de errores robusto
-  - Logs simulados funcionales
-
-- **podMonitor.service.js**: Monitoreo automático cada 30s, emite eventos WebSocket correctamente, health checks y estadísticas.
-
-- **server.js**: Integración Socket.IO con Express, inicialización correcta, cierre de conexiones.
-
-#### Problemas Identificados en Backend
-- **pod.controller.js**: Falta integración de notificaciones WebSocket.
-  - Al crear pod:  
-    ```js
-    // Falta agregar:
-    req.app.get('io').notifyPodCreated(podOwner._id, pod);
-    ```
-  - Al eliminar pod:  
-    ```js
-    req.app.get('io').notifyPodDeleted(pod.userId, pod.podId);
-    ```
-  - Al cambiar estado:  
-    ```js
-    req.app.get('io').sendPodUpdate(pod.podId, updateData);
-    ```
 
 #### Frontend (30% Completado)
 - **websocket.service.ts**: Ya corregido y ubicado en la ruta correcta.

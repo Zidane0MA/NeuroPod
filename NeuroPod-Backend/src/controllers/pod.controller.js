@@ -477,8 +477,11 @@ async function stopPodResources(pod, deletePVC = false) {
       services,
       deletePVC ? `pvc-${sanitizedPodName}-${userHash}` : null
     );
+    console.log(`✅ Pod resources deleted successfully for ${pod.podName}`);
   } catch (err) {
-    console.warn('Warning al eliminar recursos K8s:', err.message);
+    // 🔧 MEJORA: Solo logear warnings, no lanzar errores
+    console.warn(`⚠️  Warning al eliminar recursos K8s:`, err.message);
+    // No lanzar el error - la eliminación del pod de la BD debe continuar
   }
 }
 

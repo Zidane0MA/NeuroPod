@@ -37,13 +37,11 @@ mongoose
     server.listen(PORT, () => {
       console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
       console.log(`🌍 Modo: ${process.env.NODE_ENV}`);
-      console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL}`);
+      console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL_HTTPS}`);
       
       if (process.env.NODE_ENV === 'development') {
-        console.log(`📡 WebSocket disponible en ws://localhost:${PORT}`);
         console.log(`🔍 API Status: http://localhost:${PORT}/api/status`);
       } else {
-        console.log(`📡 WebSocket disponible en wss://api.neuropod.online`);
         console.log(`🔍 API Status: https://api.neuropod.online/api/status`);
       }
       

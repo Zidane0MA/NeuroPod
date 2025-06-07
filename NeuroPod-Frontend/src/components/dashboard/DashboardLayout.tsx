@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
+import { useWebSocket } from "@/hooks/useWebSocket";
+import { useGlobalNotifications } from "@/hooks/useGlobalNotifications";
 import { 
   Container, 
   Home, 
@@ -44,6 +46,20 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
   const navigate = useNavigate();
   const isAdmin = user?.role === "admin";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // 🔌 Inicializar WebSocket y notificaciones globales
+  const { getConnectionStatus } = useWebSocket();
+  const { notify } = useGlobalNotifications();
+  const [connectionStatus, setConnectionStatus] = useState(getConnectionStatus());
+  
+  // Actualizar estado de conexión periódicamente
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setConnectionStatus(getConnectionStatus());
+    }, 2000);
+    
+    return () => clearInterval(interval);
+  }, [getConnectionStatus]);
 
   const adminNavItems: NavItem[] = [
     {
@@ -127,6 +143,21 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, titl
           <Container className="h-5 w-5 text-purple-500" />
           <span className="font-bold text-xl">NeuroPod</span>
         </Link>
+        
+        {/* 📡 Indicador de conexión WebSocket */}
+        <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
+          <div 
+            className={`w-2 h-2 rounded-full ${
+              connectionStatus.connected ? 'bg-green-500' : 'bg-red-500'
+            }`}
+          />
+          <span>
+            {connectionStatus.connected ? 'En vivo' : connectionStatus.connecting ? 'Conectando...' : 'Sin conexión'}
+          </span>
+          {connectionStatus.subscribedPods.length > 0 && (
+            <span className="text-purple-500">({connectionStatus.subscribedPods.length} pods)</span>
+          )}
+        </div>
       </div>
       <nav className="flex-1 p-4 overflow-y-auto">
         <div className="space-y-1">

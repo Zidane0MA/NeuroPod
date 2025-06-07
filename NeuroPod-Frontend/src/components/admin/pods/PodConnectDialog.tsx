@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Wifi, WifiOff, Loader2 } from "lucide-react";
 import { Pod, SimulatedPod } from "@/types/pod";
@@ -16,21 +16,30 @@ interface PodConnectDialogProps {
   pod: Pod;
 }
 
-export const PodConnectDialog: React.FC<PodConnectDialogProps> = ({ pod }) => {
+// 🔧 Componente optimizado con comparación personalizada para evitar re-renders innecesarios
+export const PodConnectDialog: React.FC<PodConnectDialogProps> = React.memo(({ pod }) => {
   const [connections, setConnections] = useState<PodConnectionsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
-  // Verificar si es un pod simulado
-  const isSimulated = (pod as SimulatedPod).isSimulated === true;
+  // 🔧 Memorizar propiedades clave del pod para evitar recalcular
+  const podData = useMemo(() => ({
+    podId: pod.podId,
+    podName: pod.podName,
+    status: pod.status,
+    httpServices: pod.httpServices,
+    tcpServices: pod.tcpServices,
+    isSimulated: (pod as SimulatedPod).isSimulated === true
+  }), [pod.podId, pod.podName, pod.status, pod.httpServices, pod.tcpServices, (pod as SimulatedPod).isSimulated]);
 
-  const fetchConnections = async () => {
-    if (!pod || !pod.podId) return;
+  const { isSimulated } = podData;
+
+  const fetchConnections = useCallback(async () => {
+    if (!podData.podId) return;
     
     // Si es simulado, no hacer llamada API
     if (isSimulated) {
-      console.log('Pod simulado detectado, usando información local');
       return;
     }
     
@@ -38,7 +47,7 @@ export const PodConnectDialog: React.FC<PodConnectDialogProps> = ({ pod }) => {
       setLoading(true);
       setError(null);
       
-      const connectionData = await podService.getPodConnections(pod.podId);
+      const connectionData = await podService.getPodConnections(podData.podId);
       setConnections(connectionData);
     } catch (err) {
       console.error('Error al obtener conexiones del pod:', err);
@@ -46,32 +55,24 @@ export const PodConnectDialog: React.FC<PodConnectDialogProps> = ({ pod }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [podData.podId, isSimulated]); // Dependencies optimizadas
 
   // Manejar apertura del modal
-  const handleOpenChange = (open: boolean) => {
-    console.log('Modal open state changed:', open);
+  const handleOpenChange = useCallback((open: boolean) => {
     setIsOpen(open);
     
-    if (open) {
-      // Cuando se abre el modal
-      if (!isSimulated) {
-        console.log('Cargando conexiones para pod real...');
-        fetchConnections();
-      } else {
-        console.log('Usando información local para pod simulado');
-      }
-    } else {
-      // Cuando se cierra el modal
-      if (!isSimulated) {
-        setConnections(null);
-        setError(null);
-        setLoading(false);
-      }
+    if (open && !isSimulated) {
+      // Cuando se abre el modal y es un pod real
+      fetchConnections();
+    } else if (!open && !isSimulated) {
+      // Cuando se cierra el modal y es un pod real
+      setConnections(null);
+      setError(null);
+      setLoading(false);
     }
-  };
+  }, [isSimulated, fetchConnections]);
 
-  const openService = (url: string, isAvailable: boolean) => {
+  const openService = useCallback((url: string, isAvailable: boolean) => {
     if (isAvailable) {
       if (isSimulated) {
         // Para pods simulados, mostrar alert en lugar de abrir URL
@@ -80,9 +81,9 @@ export const PodConnectDialog: React.FC<PodConnectDialogProps> = ({ pod }) => {
         window.open(url, '_blank');
       }
     }
-  };
+  }, [isSimulated]);
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = useCallback((status: string) => {
     switch (status) {
       case 'ready': return '🟢';
       case 'starting':
@@ -92,11 +93,11 @@ export const PodConnectDialog: React.FC<PodConnectDialogProps> = ({ pod }) => {
       case 'disable': return '⚪';
       default: return '⚪';
     }
-  };
+  }, []);
 
-  const isServiceAvailable = (status: string) => status === 'ready';
+  const isServiceAvailable = useCallback((status: string) => status === 'ready', []);
 
-  const renderServiceCard = (service: any, index: number, isTcp: boolean = false) => (
+  const renderServiceCard = useCallback((service: any, index: number, isTcp: boolean = false) => (
     <div 
       key={index} 
       className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${
@@ -133,12 +134,10 @@ export const PodConnectDialog: React.FC<PodConnectDialogProps> = ({ pod }) => {
         {isTcp ? 'TCP' : isSimulated ? 'Demo' : 'Abrir'}
       </Button>
     </div>
-  );
+  ), [isSimulated, openService, isServiceAvailable, getStatusIcon]); // Dependencias memorizadas
 
   // Renderizar contenido del modal
-  const renderModalContent = () => {
-    console.log('Renderizando contenido del modal, isSimulated:', isSimulated, 'pod status:', pod.status);
-
+  const renderModalContent = useCallback(() => {
     // Para pods simulados, usar directamente la información del pod
     if (isSimulated) {
       return (
@@ -154,7 +153,7 @@ export const PodConnectDialog: React.FC<PodConnectDialogProps> = ({ pod }) => {
             </p>
           </div>
 
-          {pod.status === 'stopped' ? (
+          {podData.status === 'stopped' ? (
             <div className="text-center py-6 space-y-3">
               <WifiOff className="w-12 h-12 mx-auto text-muted-foreground" />
               <div>
@@ -164,7 +163,7 @@ export const PodConnectDialog: React.FC<PodConnectDialogProps> = ({ pod }) => {
                 </p>
               </div>
             </div>
-          ) : pod.status === 'creating' ? (
+          ) : podData.status === 'creating' ? (
             <div className="space-y-4">
               <div className="text-center py-4">
                 <Loader2 className="w-8 h-8 mx-auto animate-spin text-yellow-500" />
@@ -174,13 +173,13 @@ export const PodConnectDialog: React.FC<PodConnectDialogProps> = ({ pod }) => {
               </div>
               
               {/* HTTP Services en modo iniciando */}
-              {pod.httpServices && pod.httpServices.length > 0 && (
+              {podData.httpServices && podData.httpServices.length > 0 && (
                 <div>
                   <h4 className="font-medium mb-3 flex items-center gap-2">
                     📡 HTTP Services:
                   </h4>
                   <div className="space-y-2">
-                    {pod.httpServices.map((service, index) =>
+                    {podData.httpServices.map((service, index) =>
                       renderServiceCard({...service, status: 'creating'}, index, false)
                     )}
                   </div>
@@ -190,13 +189,13 @@ export const PodConnectDialog: React.FC<PodConnectDialogProps> = ({ pod }) => {
           ) : (
             <div className="space-y-6">
               {/* HTTP Services */}
-              {pod.httpServices && pod.httpServices.length > 0 && (
+              {podData.httpServices && podData.httpServices.length > 0 && (
                 <div>
                   <h4 className="font-medium mb-3 flex items-center gap-2">
                     📡 HTTP Services:
                   </h4>
                   <div className="space-y-2">
-                    {pod.httpServices.map((service, index) =>
+                    {podData.httpServices.map((service, index) =>
                       renderServiceCard(service, index, false)
                     )}
                   </div>
@@ -204,13 +203,13 @@ export const PodConnectDialog: React.FC<PodConnectDialogProps> = ({ pod }) => {
               )}
 
               {/* TCP Services */}
-              {pod.tcpServices && pod.tcpServices.length > 0 && (
+              {podData.tcpServices && podData.tcpServices.length > 0 && (
                 <div>
                   <h4 className="font-medium mb-3 flex items-center gap-2">
                     🔌 TCP Services:
                   </h4>
                   <div className="space-y-2">
-                    {pod.tcpServices.map((service, index) =>
+                    {podData.tcpServices.map((service, index) =>
                       renderServiceCard(service, index, true)
                     )}
                   </div>
@@ -218,8 +217,8 @@ export const PodConnectDialog: React.FC<PodConnectDialogProps> = ({ pod }) => {
               )}
 
               {/* Fallback si no hay servicios */}
-              {(!pod.httpServices || pod.httpServices.length === 0) && 
-               (!pod.tcpServices || pod.tcpServices.length === 0) && (
+              {(!podData.httpServices || podData.httpServices.length === 0) && 
+               (!podData.tcpServices || podData.tcpServices.length === 0) && (
                 <div className="text-center py-6">
                   <p className="text-muted-foreground">No hay servicios disponibles para este pod.</p>
                 </div>
@@ -344,13 +343,13 @@ export const PodConnectDialog: React.FC<PodConnectDialogProps> = ({ pod }) => {
             📡 HTTP Services:
           </h4>
           <div className="space-y-2">
-            {pod.httpServices && pod.httpServices.length > 0 ? (
-              pod.httpServices.map((service, index) =>
+            {podData.httpServices && podData.httpServices.length > 0 ? (
+              podData.httpServices.map((service, index) =>
                 renderServiceCard({
                   port: service.port,
                   serviceName: service.serviceName,
                   url: service.url,
-                  status: pod.status === 'running' ? 'ready' : 'stopped'
+                  status: podData.status === 'running' ? 'ready' : 'stopped'
                 }, index, false)
               )
             ) : (
@@ -361,13 +360,13 @@ export const PodConnectDialog: React.FC<PodConnectDialogProps> = ({ pod }) => {
           </div>
         </div>
 
-        {pod.tcpServices && pod.tcpServices.length > 0 && (
+        {podData.tcpServices && podData.tcpServices.length > 0 && (
           <div>
             <h4 className="font-medium mb-3 flex items-center gap-2">
               🔌 TCP Services:
             </h4>
             <div className="space-y-2">
-              {pod.tcpServices.map((service, index) =>
+              {podData.tcpServices.map((service, index) =>
                 renderServiceCard({
                   port: service.port,
                   serviceName: service.serviceName,
@@ -380,9 +379,7 @@ export const PodConnectDialog: React.FC<PodConnectDialogProps> = ({ pod }) => {
         )}
       </div>
     );
-  };
-
-  console.log('Renderizando PodConnectDialog, pod:', pod.podName, 'isSimulated:', isSimulated, 'isOpen:', isOpen);
+  }, [isSimulated, podData, loading, error, connections, renderServiceCard, fetchConnections]); // Dependencias optimizadas
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -399,7 +396,7 @@ export const PodConnectDialog: React.FC<PodConnectDialogProps> = ({ pod }) => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wifi className="w-5 h-5" />
-            Conectar a: {connections?.podName || pod.podName}
+            Conectar a: {connections?.podName || podData.podName}
             {isSimulated && (
               <span className="text-xs bg-orange-200 text-orange-800 px-2 py-1 rounded-full ml-2">
                 Simulado
@@ -418,4 +415,15 @@ export const PodConnectDialog: React.FC<PodConnectDialogProps> = ({ pod }) => {
       </DialogContent>
     </Dialog>
   );
-};
+}, (prevProps, nextProps) => {
+  // 🔧 Comparación personalizada para evitar re-renders innecesarios
+  // Solo re-renderizar si las propiedades clave del pod han cambiado
+  return (
+    prevProps.pod.podId === nextProps.pod.podId &&
+    prevProps.pod.status === nextProps.pod.status &&
+    prevProps.pod.podName === nextProps.pod.podName &&
+    JSON.stringify(prevProps.pod.httpServices) === JSON.stringify(nextProps.pod.httpServices) &&
+    JSON.stringify(prevProps.pod.tcpServices) === JSON.stringify(nextProps.pod.tcpServices) &&
+    (prevProps.pod as SimulatedPod).isSimulated === (nextProps.pod as SimulatedPod).isSimulated
+  );
+});

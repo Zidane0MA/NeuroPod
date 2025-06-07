@@ -59,8 +59,15 @@ class PodMonitorService {
   async monitorActivePods() {
     try {
       // Obtener todos los pods que no están detenidos
+      // Excluir pods que se detuvieron recientemente (últimos 2 minutos)
+      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
       const activePods = await Pod.find({ 
-        status: { $in: ['running', 'creating'] } 
+        status: { $in: ['running', 'creating'] },
+        // Evitar verificar pods que se marcaron como stopped recientemente
+        $or: [
+          { status: { $ne: 'stopped' } },
+          { updatedAt: { $lt: twoMinutesAgo } }
+        ]
       });
       
       if (activePods.length === 0) {
@@ -111,30 +118,47 @@ class PodMonitorService {
       let hasChanges = false;
       const previousStatus = pod.status;
       
-      // Actualizar estado del pod
+      // 🔧 NUEVO: Evitar cambiar el estado si el pod se detuvo recientemente
+      const recentlyUpdated = pod.updatedAt && (Date.now() - pod.updatedAt.getTime()) < 120000; // 2 minutos
+      const wasRecentlyStopped = previousStatus === 'stopped' && recentlyUpdated;
+      
+      // Actualizar estado del pod (con protección contra cambios recientes)
       if (kubernetesData.status && kubernetesData.status !== pod.status) {
-        pod.status = kubernetesData.status;
-        hasChanges = true;
+        // Si el pod fue detenido recientemente, no cambiarlo de vuelta a running inmediatamente
+        if (wasRecentlyStopped && kubernetesData.status === 'running') {
+          console.log(`⏸️  Pod ${podName} was recently stopped, skipping status update to running`);
+        } else {
+          pod.status = kubernetesData.status;
+          hasChanges = true;
+          
+          console.log(`📊 Pod ${podName} cambió de estado: ${previousStatus} → ${kubernetesData.status}`);
+        }
+      } else if (kubernetesData.status && kubernetesData.status === pod.status) {
+        // El estado es el mismo, pero resetear el timestamp si es apropiado
+        if (wasRecentlyStopped && kubernetesData.status === 'running') {
+          console.log(`⏰ Pod ${podName} confirmed running after recent stop attempt`);
+          hasChanges = true; // Para actualizar timestamp
+        }
         
-        console.log(`📊 Pod ${podName} cambió de estado: ${previousStatus} → ${kubernetesData.status}`);
-        
-        // Actualizar estado de servicios HTTP
-        pod.httpServices.forEach(service => {
-          const newStatus = this.getServiceStatus(kubernetesData.status);
-          if (service.status !== newStatus) {
-            service.status = newStatus;
-          }
-        });
-        
-        // Actualizar estado de servicios TCP
-        pod.tcpServices.forEach(service => {
-          if (service.status !== 'disable') {
+        // Actualizar estado de servicios HTTP solo si el estado del pod cambió
+        if (hasChanges && kubernetesData.status) {
+          pod.httpServices.forEach(service => {
             const newStatus = this.getServiceStatus(kubernetesData.status);
             if (service.status !== newStatus) {
               service.status = newStatus;
             }
-          }
-        });
+          });
+          
+          // Actualizar estado de servicios TCP
+          pod.tcpServices.forEach(service => {
+            if (service.status !== 'disable') {
+              const newStatus = this.getServiceStatus(kubernetesData.status);
+              if (service.status !== newStatus) {
+                service.status = newStatus;
+              }
+            }
+          });
+        }
       }
       
       // Actualizar métricas si están disponibles

@@ -70,23 +70,26 @@ src/
 │  │  ├─ Hero.tsx
 │  │  └─ Navbar.tsx
 │  ├─ pricing/
-│  │  └─ PricingCards.tsx     # Página pública /pricing con precios dinámicos
-│  └─ ui/                     # Componentes UI de shadcn
+│  │  └─ PricingCards.tsx           # Página pública /pricing con precios dinámicos
+│  └─ ui/                           # Componentes UI de shadcn
 ├─ context/
-│  └─ AuthContext.tsx         # Gestión de autenticación
-├─ data/mockUsers.ts          # Datos de muestra para desarrollo
+│  └─ AuthContext.tsx               # Gestión de autenticación
+├─ data/mockUsers.ts                # Datos de muestra para desarrollo
 ├─ hooks/
-│  ├─ use-mobile.tsx          # Hook para detectar dispositivos móviles
-│  └─ use-toast.ts            # Hook para notificaciones
-├─ lib/utils.ts               # Utilidades generales
+│  ├─ use-mobile.tsx                # Hook para detectar dispositivos móviles
+│  ├─ use-toast.tsx                 # Hook para notificaciones
+│  ├─ use-GlobalNotifications.tsx   # Hook para notificaciones globales
+│  ├─ use-PodUpdates.tsx            # Hook para actualizaciones de pods
+│  └─ use-WebSocket.tsx             # Hook para conexión WebSocket
+├─ lib/utils.ts                     # Utilidades generales
 ├─ pages/
-│  ├─ Dashboard.tsx           # Dashboard principal
-│  ├─ Index.tsx               # Página de inicio
-│  ├─ Login.tsx               # Inicio de sesión
-│  ├─ NotFound.tsx            # Página 404
-│  ├─ Pricing.tsx             # Planes y precios
-│  ├─ Signup.tsx              # Registro de usuarios
-│  ├─ admin/                  # Páginas de administrador
+│  ├─ Dashboard.tsx                 # Dashboard principal
+│  ├─ Index.tsx                     # Página de inicio
+│  ├─ Login.tsx                     # Inicio de sesión
+│  ├─ NotFound.tsx                  # Página 404
+│  ├─ Pricing.tsx                   # Planes y precios
+│  ├─ Signup.tsx                    # Registro de usuarios
+│  ├─ admin/                        # Páginas de administrador
 │  │  ├─ Help.tsx
 │  │  ├─ PodDeploy.tsx
 │  │  ├─ Pods.tsx             # Gestión completa de pods con búsqueda por usuario

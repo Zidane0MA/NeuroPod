@@ -473,34 +473,8 @@ class KubernetesService {
     console.log(`🗑️  Deleting resources for pod ${podFullName}`);
 
     try {
-      // Eliminar pod con grace period corto
-      try {
-        await this.k8sApi.deleteNamespacedPod({ 
-          name: podFullName, 
-          namespace: 'default',
-          gracePeriodSeconds: 5  // Esperar solo 5 segundos en lugar de 30
-        });
-        console.log(`✅ Pod ${podFullName} deleted`);
-        
-        // Esperar un momento y verificar si se eliminó correctamente
-        setTimeout(async () => {
-          try {
-            await this.k8sApi.readNamespacedPod({ name: podFullName, namespace: 'default' });
-            // Si llegamos aquí, el pod aún existe - forzar eliminación
-            console.log(`⚠️  Pod ${podFullName} still terminating, forcing deletion...`);
-            await this.forceDeletePod(podFullName);
-          } catch (readError) {
-            if (readError.statusCode === 404) {
-              console.log(`✅ Pod ${podFullName} successfully terminated`);
-            }
-          }
-        }, 15000); // Verificar después de 15 segundos
-        
-      } catch (err) {
-        if (err.statusCode !== 404) {
-          console.warn(`⚠️  Warning deleting pod: ${err.message}`);
-        }
-      }
+      // Eliminar pod y esperar a que realmente se elimine
+      await this.deletePodAndWait(podFullName);
       
       // Eliminar services e ingress
       for (const service of services) {
@@ -539,6 +513,98 @@ class KubernetesService {
       console.error(`❌ Error deleting pod resources:`, error);
       throw error;
     }
+  }
+
+  // 🔧 Nueva función: Eliminar pod y esperar a que realmente se elimine
+  async deletePodAndWait(podFullName, maxWaitTime = 30000) {
+    try {
+      // Intentar eliminación normal primero
+      try {
+        await this.k8sApi.deleteNamespacedPod({ 
+          name: podFullName, 
+          namespace: 'default',
+          gracePeriodSeconds: 5
+        });
+        console.log(`🗑️  Deletion command sent for pod ${podFullName}`);
+      } catch (err) {
+        // 🔧 MEJORA: Verificar múltiples propiedades de error 404
+        if (this.isNotFoundError(err)) {
+          console.log(`✅ Pod ${podFullName} already deleted`);
+          return;
+        }
+        throw err;
+      }
+      
+      // Esperar a que el pod se elimine realmente
+      const startTime = Date.now();
+      let podExists = true;
+      
+      while (podExists && (Date.now() - startTime) < maxWaitTime) {
+        try {
+          await this.k8sApi.readNamespacedPod({ name: podFullName, namespace: 'default' });
+          // Si llegamos aquí, el pod todavía existe
+          console.log(`⏳ Pod ${podFullName} still terminating... waiting`);
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Esperar 2 segundos
+        } catch (readError) {
+          // 🔧 MEJORA: Verificar múltiples propiedades de error 404
+          if (this.isNotFoundError(readError)) {
+            // Pod eliminado exitosamente
+            podExists = false;
+            console.log(`✅ Pod ${podFullName} successfully deleted`);
+          } else {
+            // Error inesperado - pero no lanzar excepción, solo logear
+            console.warn(`⚠️  Unexpected error reading pod ${podFullName}:`, readError.message);
+            // Asumir que el pod se eliminó si no podemos verificarlo
+            podExists = false;
+          }
+        }
+      }
+      
+      // Si el pod aún existe después del tiempo límite, forzar eliminación
+      if (podExists) {
+        console.log(`⚠️  Pod ${podFullName} still exists after ${maxWaitTime}ms, forcing deletion...`);
+        await this.forceDeletePod(podFullName);
+        
+        // Esperar un poco más después de la eliminación forzada
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Verificar una vez más (pero no lanzar error si falla)
+        try {
+          await this.k8sApi.readNamespacedPod({ name: podFullName, namespace: 'default' });
+          console.log(`⚠️  Pod ${podFullName} still exists after force delete - but continuing anyway`);
+          console.log(`🛠️  Manual cleanup: kubectl delete pod ${podFullName} --force --grace-period=0`);
+        } catch (finalCheck) {
+          if (this.isNotFoundError(finalCheck)) {
+            console.log(`✅ Pod ${podFullName} successfully force deleted`);
+          } else {
+            console.warn(`⚠️  Cannot verify final pod deletion, but assuming success`);
+          }
+        }
+      }
+      
+      console.log(`✅ Pod deletion process completed for ${podFullName}`);
+      
+    } catch (error) {
+      // 🔧 MEJORA: No lanzar error si es 404, solo logear otros errores
+      if (this.isNotFoundError(error)) {
+        console.log(`✅ Pod ${podFullName} not found (already deleted)`);
+      } else {
+        console.error(`❌ Error in deletePodAndWait for ${podFullName}:`, error.message);
+        // No lanzar el error para evitar que falle la eliminación completa
+        console.log(`⚠️  Continuing with deletion process despite error`);
+      }
+    }
+  }
+
+  // 🔧 Nueva función helper: Verificar si un error es 404/NotFound
+  isNotFoundError(error) {
+    return (
+      error.statusCode === 404 || 
+      error.status === 404 || 
+      error.code === 404 ||
+      (error.body && error.body.includes('not found')) ||
+      (error.message && error.message.includes('not found'))
+    );
   }
 
   // Obtener estado de un pod y sus métricas
@@ -812,24 +878,16 @@ class KubernetesService {
         namespace: 'default',
         gracePeriodSeconds: 0  // Eliminación inmediata
       });
-      console.log(`✅ Pod ${podFullName} force deleted`);
-      
-      // Verificar nuevamente después de un momento
-      setTimeout(async () => {
-        try {
-          await this.k8sApi.readNamespacedPod({ name: podFullName, namespace: 'default' });
-          console.log(`❌ Pod ${podFullName} still exists after force delete - may need manual cleanup`);
-          console.log(`🛠️  Manual cleanup command: kubectl delete pod ${podFullName} --force --grace-period=0`);
-        } catch (readError) {
-          if (readError.statusCode === 404) {
-            console.log(`✅ Pod ${podFullName} successfully force deleted`);
-          }
-        }
-      }, 5000);
+      console.log(`💥 Pod ${podFullName} force delete command sent`);
       
     } catch (error) {
-      console.error(`❌ Error force deleting pod ${podFullName}:`, error.message);
-      console.log(`🛠️  Try manual cleanup: kubectl delete pod ${podFullName} --force --grace-period=0`);
+      if (error.statusCode === 404) {
+        console.log(`✅ Pod ${podFullName} already deleted`);
+      } else {
+        console.error(`❌ Error force deleting pod ${podFullName}:`, error.message);
+        console.log(`🛠️  Try manual cleanup: kubectl delete pod ${podFullName} --force --grace-period=0`);
+        throw error;
+      }
     }
   }
 

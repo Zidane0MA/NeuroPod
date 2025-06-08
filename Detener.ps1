@@ -66,7 +66,7 @@ function Invoke-CommandSafely {
         if ($LASTEXITCODE -eq 0 -or $result) {
             Write-Host "✅ $DisplayName ejecutado correctamente." -ForegroundColor Green
         } else {
-            Write-Host "ℹ️ $DisplayName: Sin cambios o ya estaba detenido." -ForegroundColor Gray
+            Write-Host "ℹ️ ${DisplayName} - Sin cambios o ya estaba detenido." -ForegroundColor Gray
         }
     } catch {
         Write-Host "⚠️ Error al ejecutar $DisplayName" -ForegroundColor Gray

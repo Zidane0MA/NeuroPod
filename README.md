@@ -190,27 +190,30 @@ flowchart LR
    - **SECRETO DE CLIENTE**
    ```
 
-4. Iniciar los servicios con el script [Arrancar.bat](./Arrancar.bat).
+4. Iniciar los servicios con el script [Arrancar.ps1](./Arrancar.ps1).
 
-5. En caso de detener todo usar el script [Detener.bat](Detener.bat)
+5. En caso de detener todo usar el script [Detener.ps1](Detener.bat)
 
 ---
 
 ## 📁 Estructura del proyecto
 
 ```
-/NeuroPod-Backend
-  └── src/
-
-/NeuroPod-Frontend
-  ├── src/
-  └── public/
-
-Arrancar.bat
-Detener.bat
-LICENSE
-Neuropod_Tecnologias.docx
-README.md
+/NeuroPod
+  ├── Arrancar.bat
+  ├── Detener.bat
+  ├── LICENSE
+  ├── Neuropod_Tecnologias.docx
+  ├── README.md
+  ├── Documentacion/
+  ├── Kubernetes/
+  ├── Neuropod-Backend
+  │   ├── src/
+  │   └── package.json
+  └── Neuropod-Frontend
+      ├── src/
+      ├── public/
+      └── package.json
 ```
 
 ---

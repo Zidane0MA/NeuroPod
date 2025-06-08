@@ -878,28 +878,18 @@ class KubernetesService {
     const sanitizedPodName = podName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
     const podFullName = `${sanitizedPodName}-${userHash}`;
     
-    console.log(`🔍 [DEBUG] Obteniendo logs para pod:`);
-    console.log(`   📝 podName original: '${podName}'`);
-    console.log(`   📝 podName sanitizado: '${sanitizedPodName}'`);
-    console.log(`   📝 userHash: '${userHash}'`);
-    console.log(`   📝 podFullName construido: '${podFullName}'`);
-    
     try {
       // Primero verificar si el pod existe
-      console.log(`🔍 [DEBUG] Verificando si el pod '${podFullName}' existe...`);
-      
       let podExists = false;
       try {
         await this.k8sApi.readNamespacedPod({ name: podFullName, namespace: 'default' });
         podExists = true;
-        console.log(`✅ [DEBUG] Pod '${podFullName}' encontrado`);
       } catch (checkError) {
         console.log(`❌ [DEBUG] Pod '${podFullName}' no encontrado:`, checkError.statusCode || checkError.message);
         
         // Listar todos los pods para debugging
         try {
           const { body } = await this.k8sApi.listNamespacedPod({ namespace: 'default' });
-          console.log(`🔍 [DEBUG] Pods disponibles en namespace 'default':`);
           body.items.forEach(pod => {
             console.log(`   - ${pod.metadata.name} (status: ${pod.status.phase})`);
           });
@@ -912,9 +902,6 @@ class KubernetesService {
         return `Pod '${podFullName}' no encontrado en Kubernetes. Verifica que el pod esté ejecutándose.`;
       }
       
-      // Leer logs del pod
-      console.log(`📜 [DEBUG] Obteniendo logs del pod '${podFullName}' (últimas ${lines} líneas)...`);
-      
       const response = await this.k8sApi.readNamespacedPodLog({
         name: podFullName,
         namespace: 'default',
@@ -924,8 +911,6 @@ class KubernetesService {
       });
       
       const logs = response.body || response.data || response;
-      
-      console.log(`✅ [DEBUG] Logs obtenidos exitosamente para '${podFullName}' (${logs ? logs.length : 0} caracteres)`);
       
       if (!logs || logs.trim() === '') {
         return `Pod '${podFullName}' está ejecutándose pero no ha generado logs aún. Espera unos momentos y vuelve a intentar.`;

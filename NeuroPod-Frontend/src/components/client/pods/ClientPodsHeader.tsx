@@ -19,7 +19,13 @@ export const ClientPodsHeader: React.FC<ClientPodsHeaderProps> = ({ user }) => {
       <div className="flex items-center gap-4">
         <div className="text-sm text-right">
           <div className="text-muted-foreground">Saldo</div>
-          <div className="font-semibold">€{user?.balance?.toFixed(2) || '0.00'}</div>
+          <div className="font-semibold">
+            €{
+              typeof user?.balance === "number"
+                ? user.balance.toFixed(2)
+                : user?.balance || "0.00"
+            }
+          </div>
         </div>
         
         <Link to="/client/pods/deploy">

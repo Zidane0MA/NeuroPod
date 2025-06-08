@@ -22,7 +22,7 @@ export const PodsHeader: React.FC<PodsHeaderProps> = ({ user }) => {
     
     return (
       <div className="font-semibold">
-        €{user?.balance?.toFixed(2) || '0.00'}
+        €{typeof user?.balance === "number" ? user.balance.toFixed(2) : '0.00'}
       </div>
     );
   };

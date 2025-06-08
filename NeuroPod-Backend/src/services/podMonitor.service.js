@@ -402,13 +402,6 @@ class PodMonitorService {
         timestamp: new Date().toISOString()
       };
       
-      console.log(`📡 Enviando actualización WebSocket para pod ${pod.podId}:`, {
-        podId: pod.podId,
-        status: pod.status,
-        type: podUpdate.type,
-        httpServices: podUpdate.httpServices.map(s => ({ port: s.port, status: s.status }))
-      });
-      
       // Enviar actualización usando la función del socket
       this.io.sendPodUpdate(pod.podId, podUpdate);
       

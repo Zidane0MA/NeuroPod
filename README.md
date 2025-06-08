@@ -1,5 +1,7 @@
 ## 📋 Información del Proyecto
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Zidane0MA/NeuroPod)
+
 **Nombre del Proyecto**: Neuropod  
 **Dominio**: neuropod.online  
 **Objetivo**: Plataforma para gestionar y ejecutar pods a través de una interfaz web con autenticación de usuarios. ComfyUI está disponible como una plantilla predefinida, al igual que Ubuntu, pero cualquier imagen Docker podrá ejecutarse manualmente.   

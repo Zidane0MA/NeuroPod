@@ -327,8 +327,6 @@ El frontend incluye un sistema de simulación completo que permite:
 - **Pod de demostración**: "ComfyUI-Demo" completamente funcional
 - **Operaciones completas**: Start, stop, delete, connect, logs
 
-**Ver documentación completa:** `../Documentacion/MODO_SIMULACION_PODS.md`
-
 ## 📊 Variables de Entorno
 
 | Variable | Descripción | Valor por defecto |
@@ -374,7 +372,7 @@ npm run type-check       # Verificar tipos TypeScript
 ## 📞 Soporte
 
 - **Documentación técnica**: Archivos `*.md` en el directorio
-- **Modo simulación**: `../Documentacion/MODO_SIMULACION_PODS.md`
+- **Modo simulación**: `../Documentacion/MANUAL_MODO_SIMULACION_PODS.md`
 - **Issues**: Repositorio del proyecto
 - **Contacto**: lolerodiez@gmail.com
 

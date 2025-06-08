@@ -223,7 +223,9 @@ const AdminPodDeploy = () => {
                 <span>€</span>
               </span>
             ) : (
-              `${user?.balance?.toFixed(2) || 0} €`
+              typeof user?.balance === "number"
+                ? `${user.balance.toFixed(2)} €`
+                : "0 €"
             )}
           </div>
         </div>
@@ -426,7 +428,7 @@ const AdminPodDeploy = () => {
                         <span className="text-sm text-muted-foreground">{(containerDiskPrice).toFixed(2)} €/hora</span>
                       </div>
                       <Slider
-                        defaultValue={[containerDiskSize]}
+                        value={[containerDiskSize]}
                         max={100}
                         min={5}
                         step={5}
@@ -444,7 +446,7 @@ const AdminPodDeploy = () => {
                         <span className="text-sm text-muted-foreground">{(volumeDiskPrice).toFixed(2)} €/hora</span>
                       </div>
                       <Slider
-                        defaultValue={[volumeDiskSize]}
+                        value={[volumeDiskSize]}
                         max={150}
                         min={10}
                         step={5}

@@ -209,7 +209,7 @@ const ClientPodDeploy = () => {
   const gpuPrice = selectedGpu?.price || 0;
   const totalPrice = gpuPrice + containerDiskPrice + volumeDiskPrice;
 
-  const hasEnoughBalance = (user?.balance || 0) >= totalPrice;
+  const hasEnoughBalance = (Number(user?.balance) || 0) >= totalPrice;
 
   return (
     <DashboardLayout title="Desplegar Pod">
@@ -221,7 +221,13 @@ const ClientPodDeploy = () => {
         
         <div className="text-sm text-right">
           <div className="text-muted-foreground">Saldo</div>
-          <div className="font-semibold">{user?.balance?.toFixed(2) || 0} €</div>
+          <div className="font-semibold">
+            {typeof user?.balance === "number"
+              ? user.balance.toFixed(2)
+              : user?.balance === "Infinity"
+                ? "∞"
+                : "0"} €
+          </div>
         </div>
       </div>
       
@@ -402,7 +408,7 @@ const ClientPodDeploy = () => {
                         <span className="text-sm text-muted-foreground">{(containerDiskPrice).toFixed(2)} €/hora</span>
                       </div>
                       <Slider
-                        defaultValue={[containerDiskSize]}
+                        value={[containerDiskSize]}
                         max={100}
                         min={5}
                         step={5}
@@ -420,7 +426,7 @@ const ClientPodDeploy = () => {
                         <span className="text-sm text-muted-foreground">{(volumeDiskPrice).toFixed(2)} €/hora</span>
                       </div>
                       <Slider
-                        defaultValue={[volumeDiskSize]}
+                        value={[volumeDiskSize]}
                         max={150}
                         min={10}
                         step={5}

@@ -32,6 +32,29 @@ const AdminPods = () => {
   // 🔧 NUEVO: Inicializar WebSocket
   const { service: wsService } = useWebSocket();
 
+  const fetchMyPods = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const fetchedPods = await podService.getPods();
+      setPods(fetchedPods);
+      
+      // 🔧 NUEVO: Suscribirse a cada pod específico
+      console.log('📡 Admin: Suscribiendo a pods específicos:', fetchedPods.map(p => p.podId));
+      fetchedPods.forEach(pod => {
+        console.log(`📡 Admin: Suscribiendo a pod ${pod.podId}`);
+        webSocketService.subscribeToPod(pod.podId, user?.id);
+      });
+      
+    } catch (err: unknown) {
+      console.error('Error al cargar pods:', err);
+      setError('No se pudieron cargar los pods. Por favor, intenta de nuevo.');
+      toast.error('Error al cargar pods');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
   // 🔧 NUEVO: Suscribirse a actualizaciones de pods via WebSocket
   useEffect(() => {
     console.log('🔌 Admin: Inicializando suscripciones WebSocket...');
@@ -90,37 +113,14 @@ const AdminPods = () => {
       unsubscribePodCreated();
       unsubscribePodDeleted();
     };
-  }, [isSearchMode, searchEmail]); // Dependencias para re-suscribirse cuando cambie el modo
+  }, [isSearchMode, searchEmail, fetchMyPods, pods]); // Dependencias para re-suscribirse cuando cambie el modo
 
   // Cargar pods propios del admin al iniciar
   useEffect(() => {
     if (!isSearchMode) {
       fetchMyPods();
     }
-  }, [isSearchMode]);
-  
-  const fetchMyPods = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const fetchedPods = await podService.getPods();
-      setPods(fetchedPods);
-      
-      // 🔧 NUEVO: Suscribirse a cada pod específico
-      console.log('📡 Admin: Suscribiendo a pods específicos:', fetchedPods.map(p => p.podId));
-      fetchedPods.forEach(pod => {
-        console.log(`📡 Admin: Suscribiendo a pod ${pod.podId}`);
-        webSocketService.subscribeToPod(pod.podId, user?.id);
-      });
-      
-    } catch (err: unknown) {
-      console.error('Error al cargar pods:', err);
-      setError('No se pudieron cargar los pods. Por favor, intenta de nuevo.');
-      toast.error('Error al cargar pods');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [isSearchMode, fetchMyPods]);
 
   const handleSearchByEmail = async () => {
     if (!searchEmail.trim()) {

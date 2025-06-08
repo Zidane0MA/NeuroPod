@@ -415,21 +415,19 @@ class KubernetesService {
           echo "✅ ¡Pod listo para ser utilizado!"
           echo "🌐 Esperando conexiones en subdominios..."
           
-          # Función para mostrar logs combinados
-          show_logs() {
-            while true; do
-              echo "=== JUPYTER LAB LOGS ==="
-              tail -n 10 /tmp/jupyter.log 2>/dev/null || echo "No hay logs de Jupyter aún"
-              if [[ "${ports.join(',')}" == *"8188"* ]]; then
-                echo "=== COMFYUI LOGS ==="
-                tail -n 10 /tmp/comfyui.log 2>/dev/null || echo "No hay logs de ComfyUI aún"
-              fi
-              sleep 30
-            done
-          }
+          # Mostrar estado final de servicios una vez
+          echo "=== ESTADO FINAL DE SERVICIOS ==="
+          echo "✅ Jupyter Lab configurado en puerto 8888"
+          if [[ "${ports.join(',')}" == *"8188"* ]]; then
+            echo "✅ ComfyUI configurado en puerto 8188"
+          fi
+          echo "🔑 Token de acceso generado correctamente"
+          echo "📁 Workspace montado en /workspace"
+          echo "🚀 Contenedor listo y servicios iniciados"
+          echo "📋 Para ver logs en tiempo real, usa el botón 'Logs' en la interfaz"
           
-          # Mantener el contenedor ejecutándose y mostrar logs
-          show_logs
+          # Mantener el contenedor vivo sin logs repetitivos
+          tail -f /dev/null
         `];
       } else {
         // Script para otras imágenes con solo Jupyter

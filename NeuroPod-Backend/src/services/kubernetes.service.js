@@ -336,34 +336,164 @@ class KubernetesService {
       }];
     }
     
-    // Configurar comandos de inicio para Jupyter si está habilitado
+    // Generar token seguro para Jupyter Lab
+    const jupyterToken = crypto.randomBytes(24).toString('hex');
+    console.log(`🔑 Generated Jupyter token for ${podFullName}: ${jupyterToken.substring(0, 8)}...`);
+    
+    // Configurar comandos de inicio basados en la imagen Docker
     let command = [];
     let args = [];
     
+    // Detectar si es imagen de ComfyUI
+    const isComfyUIImage = dockerImage.toLowerCase().includes('comfyui');
+    
     if (enableJupyter && ports.includes(8888)) {
       command = ['/bin/bash', '-c'];
+      
+      if (isComfyUIImage) {
+        // Script especial para imágenes ComfyUI + Jupyter
+        args = [`
+          echo "🚀 Iniciando servicios ComfyUI y Jupyter Lab..."
+          
+          # Instalar Jupyter si no está disponible
+          if ! command -v jupyter &> /dev/null; then
+            echo "Instalando Jupyter Lab..."
+            pip install jupyterlab || apt-get update && apt-get install -y python3-pip && pip3 install jupyterlab
+          fi
+          
+          # Crear directorio de configuración
+          mkdir -p /root/.jupyter
+          
+          # Configurar Jupyter con token seguro
+          echo "c.ServerApp.ip = '0.0.0.0'" > /root/.jupyter/jupyter_lab_config.py
+          echo "c.ServerApp.port = 8888" >> /root/.jupyter/jupyter_lab_config.py
+          echo "c.ServerApp.allow_root = True" >> /root/.jupyter/jupyter_lab_config.py
+          echo "c.ServerApp.token = '${jupyterToken}'" >> /root/.jupyter/jupyter_lab_config.py
+          echo "c.ServerApp.password = ''" >> /root/.jupyter/jupyter_lab_config.py
+          echo "c.ServerApp.open_browser = False" >> /root/.jupyter/jupyter_lab_config.py
+          
+          echo "🔧 Servicios principales inicializados"
+          echo "📁 Montando volumen de usuario en /workspace"
+          
+          # Crear directorio de trabajo si no existe
+          mkdir -p /workspace
+          cd /workspace
+          
+          echo "🌐 Configurando red y puertos (${ports.join(', ')})"
+          echo "🔧 Inicializando entorno de usuario"
+          
+          # Iniciar Jupyter Lab en background
+          echo "🚀 Iniciando Jupyter Lab en puerto 8888..."
+          nohup jupyter lab --config=/root/.jupyter/jupyter_lab_config.py > /tmp/jupyter.log 2>&1 &
+          
+          # Esperar a que Jupyter Lab se inicie
+          sleep 5
+          
+          # Iniciar ComfyUI si el puerto 8188 está configurado
+          if [[ "${ports.join(',')}" == *"8188"* ]]; then
+            echo "🎨 Iniciando ComfyUI en puerto 8188..."
+            if [ -f "/app/main.py" ]; then
+              nohup python3 /app/main.py --listen 0.0.0.0 --port 8188 > /tmp/comfyui.log 2>&1 &
+            else
+              echo "⚠️  Archivo /app/main.py no encontrado, buscando alternativas..."
+              # Buscar otros archivos de inicio de ComfyUI
+              if [ -f "/ComfyUI/main.py" ]; then
+                cd /ComfyUI
+                nohup python3 main.py --listen 0.0.0.0 --port 8188 > /tmp/comfyui.log 2>&1 &
+              elif [ -f "/workspace/ComfyUI/main.py" ]; then
+                cd /workspace/ComfyUI
+                nohup python3 main.py --listen 0.0.0.0 --port 8188 > /tmp/comfyui.log 2>&1 &
+              else
+                echo "❌ No se encontró ComfyUI, solo Jupyter Lab estará disponible"
+              fi
+            fi
+          fi
+          
+          echo "✅ ComfyUI disponible en puerto 8188" || echo "⚠️  ComfyUI no configurado"
+          echo "✅ Jupyter Lab disponible en puerto 8888"
+          echo "🔑 Jupyter Lab token: ${jupyterToken}"
+          echo "✅ ¡Pod listo para ser utilizado!"
+          echo "🌐 Esperando conexiones en subdominios..."
+          
+          # Función para mostrar logs combinados
+          show_logs() {
+            while true; do
+              echo "=== JUPYTER LAB LOGS ==="
+              tail -n 10 /tmp/jupyter.log 2>/dev/null || echo "No hay logs de Jupyter aún"
+              if [[ "${ports.join(',')}" == *"8188"* ]]; then
+                echo "=== COMFYUI LOGS ==="
+                tail -n 10 /tmp/comfyui.log 2>/dev/null || echo "No hay logs de ComfyUI aún"
+              fi
+              sleep 30
+            done
+          }
+          
+          # Mantener el contenedor ejecutándose y mostrar logs
+          show_logs
+        `];
+      } else {
+        // Script para otras imágenes con solo Jupyter
+        args = [`
+          echo "🚀 Iniciando Jupyter Lab..."
+          
+          # Instalar Jupyter si no está disponible
+          if ! command -v jupyter &> /dev/null; then
+            echo "Instalando Jupyter Lab..."
+            pip install jupyterlab || apt-get update && apt-get install -y python3-pip && pip3 install jupyterlab
+          fi
+          
+          # Crear directorio de configuración
+          mkdir -p /root/.jupyter
+          
+          # Configurar Jupyter con token seguro
+          echo "c.ServerApp.ip = '0.0.0.0'" > /root/.jupyter/jupyter_lab_config.py
+          echo "c.ServerApp.port = 8888" >> /root/.jupyter/jupyter_lab_config.py
+          echo "c.ServerApp.allow_root = True" >> /root/.jupyter/jupyter_lab_config.py
+          echo "c.ServerApp.token = '${jupyterToken}'" >> /root/.jupyter/jupyter_lab_config.py
+          echo "c.ServerApp.password = ''" >> /root/.jupyter/jupyter_lab_config.py
+          echo "c.ServerApp.open_browser = False" >> /root/.jupyter/jupyter_lab_config.py
+          
+          echo "📁 Montando volumen de usuario en /workspace"
+          mkdir -p /workspace
+          cd /workspace
+          
+          echo "🔑 Jupyter Lab token: ${jupyterToken}"
+          echo "✅ Iniciando Jupyter Lab..."
+          
+          # Iniciar Jupyter Lab
+          jupyter lab --config=/root/.jupyter/jupyter_lab_config.py
+        `];
+      }
+    } else if (isComfyUIImage) {
+      // Solo ComfyUI sin Jupyter
+      command = ['/bin/bash', '-c'];
       args = [`
-        # Instalar Jupyter si no está disponible
-        if ! command -v jupyter &> /dev/null; then
-          echo "Instalando Jupyter Lab..."
-          pip install jupyterlab || apt-get update && apt-get install -y python3-pip && pip3 install jupyterlab
+        echo "🎨 Iniciando ComfyUI..."
+        
+        # Crear directorio de trabajo
+        mkdir -p /workspace
+        cd /workspace
+        
+        echo "🌐 Configurando ComfyUI en puerto 8188..."
+        
+        # Buscar y ejecutar ComfyUI
+        if [ -f "/app/main.py" ]; then
+          python3 /app/main.py --listen 0.0.0.0 --port 8188
+        elif [ -f "/ComfyUI/main.py" ]; then
+          cd /ComfyUI
+          python3 main.py --listen 0.0.0.0 --port 8188
+        elif [ -f "/workspace/ComfyUI/main.py" ]; then
+          cd /workspace/ComfyUI
+          python3 main.py --listen 0.0.0.0 --port 8188
+        else
+          echo "❌ No se encontró ComfyUI main.py"
+          echo "📁 Contenido de /app:"
+          ls -la /app/ || echo "Directorio /app no existe"
+          echo "📁 Contenido de /:"
+          ls -la / | grep -i comfy || echo "No se encontraron directorios ComfyUI"
+          # Mantener contenedor vivo para debugging
+          tail -f /dev/null
         fi
-        
-        # Crear directorio de configuración
-        mkdir -p /root/.jupyter
-        
-        # Configurar Jupyter
-        echo "c.ServerApp.ip = '0.0.0.0'" > /root/.jupyter/jupyter_lab_config.py
-        echo "c.ServerApp.port = 8888" >> /root/.jupyter/jupyter_lab_config.py
-        echo "c.ServerApp.allow_root = True" >> /root/.jupyter/jupyter_lab_config.py
-        echo "c.ServerApp.token = ''" >> /root/.jupyter/jupyter_lab_config.py
-        echo "c.ServerApp.password = ''" >> /root/.jupyter/jupyter_lab_config.py
-        
-        # Iniciar Jupyter en background
-        nohup jupyter lab --config=/root/.jupyter/jupyter_lab_config.py > /tmp/jupyter.log 2>&1 &
-        
-        # Mantener el contenedor ejecutándose
-        tail -f /tmp/jupyter.log
       `];
     }
     
@@ -403,7 +533,9 @@ class KubernetesService {
             { name: 'NEUROPOD_WORKSPACE', value: '/workspace' },
             { name: 'NEUROPOD_GPU', value: gpu || 'none' },
             { name: 'JUPYTER_ENABLE_LAB', value: 'yes' },
-            { name: 'JUPYTER_TOKEN', value: '' }
+            { name: 'JUPYTER_TOKEN', value: jupyterToken },
+            { name: 'COMFYUI_LISTEN', value: '0.0.0.0' },
+            { name: 'COMFYUI_PORT', value: '8188' }
           ],
           securityContext: {
             runAsUser: 0, // Root para instalaciones
@@ -773,12 +905,7 @@ class KubernetesService {
   async captureJupyterToken(podName, userHash) {
     if (!this.isKubernetesAvailable()) {
       // Token simulado para desarrollo - formato realista
-      const chars = 'abcdef0123456789';
-      let token = '';
-      for (let i = 0; i < 48; i++) {
-        token += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return token;
+      return crypto.randomBytes(24).toString('hex');
     }
 
     try {
@@ -786,17 +913,27 @@ class KubernetesService {
       
       // Buscar diferentes formatos de token de Jupyter
       const tokenPatterns = [
+        // Nuestro formato configurado
+        /Jupyter Lab token: ([a-f0-9]{48})/i,
+        // Formatos estándar de Jupyter
         /token=([a-f0-9]{48})/i,
         /\?token=([a-f0-9]{48})/i,
         /jupyter.*token.*?([a-f0-9]{48})/i,
-        /token.*?([a-f0-9]{48})/i
+        /token.*?([a-f0-9]{48})/i,
+        // Token en URL
+        /http:\/\/.*:(\d+)\/lab\?token=([a-f0-9]{48})/i,
+        /https?:\/\/.*\/lab\?token=([a-f0-9]{48})/i
       ];
       
       for (const pattern of tokenPatterns) {
         const match = logs.match(pattern);
-        if (match && match[1]) {
-          console.log(`✅ Jupyter token captured for ${podName}-${userHash}: ${match[1].substring(0, 8)}...`);
-          return match[1];
+        if (match) {
+          // Para patrones con múltiples grupos, tomar el token (último grupo)
+          const token = match[match.length - 1];
+          if (token && token.length === 48) {
+            console.log(`✅ Jupyter token captured for ${podName}-${userHash}: ${token.substring(0, 8)}...`);
+            return token;
+          }
         }
       }
       

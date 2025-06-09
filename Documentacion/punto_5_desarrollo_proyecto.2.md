@@ -1,5 +1,3 @@
----
-
 ## 🏗️ **5.12 Configuración de Infraestructura Implementada**
 
 Esta sección documenta la configuración completa de la infraestructura que soporta NeuroPod, incluyendo el entorno Kubernetes local y la exposición segura a Internet.
@@ -73,6 +71,7 @@ data:
   domain: "neuropod.online"
   maxPodsPerUser: "5"
   workspacePath: "/workspace"
+```
 
 ---
 # Storage Class personalizada

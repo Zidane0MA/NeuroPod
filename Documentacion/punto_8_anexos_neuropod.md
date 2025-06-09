@@ -305,21 +305,21 @@ graph TB
     end
     
     subgraph "💻 Máquina Local (Windows)"
-        D[⚛️ Frontend React<br/>:5173 (Vite Dev Server)]
-        E[🟢 Backend Node.js<br/>:3000 (Express + Socket.io)]
-        F[🍃 MongoDB<br/>:27017 (Local Instance)]
+        D["⚛️ Frontend React<br/>:5173 (Vite Dev Server)"]
+        E["🟢 Backend Node.js<br/>:3000 (Express + Socket.io)"]
+        F["🍃 MongoDB<br/>:27017 (Local Instance)"]
         
         subgraph "🐳 Docker Desktop + Minikube"
-            G[⚙️ NGINX Ingress<br/>:443 (TLS Termination)]
-            H[📦 Kubernetes Pods<br/>(GPU-enabled)]
-            I[💾 Persistent Volumes<br/>(/workspace shared)]
+            G["⚙️ NGINX Ingress<br/>:443 (TLS Termination)"]
+            H["📦 Kubernetes Pods<br/>(GPU-enabled)"]
+            I["💾 Persistent Volumes<br/>(/workspace shared)"]
         end
     end
     
     subgraph "🔗 Flujo de Datos"
-        J[🔄 WebSockets<br/>(Tiempo Real)]
-        K[🌐 REST API<br/>(HTTP/HTTPS)]
-        L[🔐 OAuth2 + JWT<br/>(Autenticación)]
+        J["🔄 WebSockets<br/>(Tiempo Real)"]
+        K["🌐 REST API<br/>(HTTP/HTTPS)"]
+        L["🔐 OAuth2 + JWT<br/>(Autenticación)"]
     end
     
     A --> B

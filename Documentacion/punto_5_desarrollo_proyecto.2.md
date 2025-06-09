@@ -14,7 +14,7 @@ graph TD
     C --> E[NGINX Ingress Controller]
     C --> F[Storage Provisioner]
     
-    G[Persistent Volumes] --> H[/mnt/data/workspace]
+    G[Persistent Volumes] --> H["/mnt/data/workspace"]
     E --> I[TLS Certificates]
     I --> J[*.neuropod.online]
     
